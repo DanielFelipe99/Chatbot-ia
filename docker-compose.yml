@@ -1,0 +1,22 @@
+services:
+  chatbot-ia:
+    build: .
+    ports:
+      - "5000:5000"
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./app:/app
+    environment:
+      - FLASK_ENV=production
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+volumes:
+  ollama_data:
