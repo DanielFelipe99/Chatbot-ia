@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>Chat con Llama 3 - Voces Naturales Microsoft</title>
+    <title>Profe Alex - Asistente Virtual</title>
     <meta charset="utf-8">
     <style>
+        /* Estilos generales */
         * {
             margin: 0;
             padding: 0;
@@ -12,159 +13,170 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #f6f6f6 0%, #f3f4e9 100%);
             min-height: 100vh;
+            padding: 20px;
         }
         
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        h1 {
-            color: #333;
+        /* Botón del chatbot flotante */
+        .chatbot-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 100px;
+            border-radius: 30%;
             
-            font-size: 28px;
-        }
-        
-        .voice-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .voice-selector {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .voice-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .voice-option {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 12px;
             cursor: pointer;
+            background-image: url('{{ url_for("static", filename="images/normal.png") }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: transparent;
+            z-index: 1000;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
             transition: all 0.3s;
-            text-align: center;
+            
         }
         
-        .voice-option:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        .chatbot-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            background-image: url('{{ url_for("static", filename="images/sonriente.png") }}');
         }
         
-        .voice-option.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #764ba2;
+       
+        
+        /* Contenedor del chat */
+        .chat-container {
+          position: fixed;
+          bottom: 100px;
+          right: 20px;
+          width: 700px;
+          height: 450px;
+          background-image: url('{{ url_for("static", filename="images/tablero-profesor.png") }}');
+          /*background-size: 898px 550px;*/
+          background-size: 700px 450px;
+          background-repeat: no-repeat;
+          background-position: center;
+          background-color: transparent;
+          display: flex;
+          flex-direction: column;
+          z-index: 1000;
+          overflow: visible;
+          transition: all 0.3s ease;
+          transform: translateY(150%);
+          opacity: 0;
+          /* Quitar bordes y sombras anteriores */
+          border: none;
+          border-radius: 0;
+          box-shadow: none;
         }
         
-        .voice-option .flag {
-            font-size: 24px;
-            margin-bottom: 5px;
+        /* Fondo de tablero pensando mientras se procesa la pregunta */
+        .chat-container.thinking {
+          background-image: url('{{ url_for("static", filename="images/tablero-pensando.png") }}');
         }
         
-        .voice-option .name {
-            font-size: 13px;
-            font-weight: 600;
+        .chat-container.active {
+            transform: translateY(0);
+            opacity: 1;
         }
         
-        .voice-option .gender {
-            font-size: 11px;
-            opacity: 0.8;
-            margin-top: 3px;
+        /* Cabecera del chat */
+        .chat-header {
+           display: none;
         }
         
-        #chat {
-            height: 400px;
-            overflow-y: auto;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background: #f9f9f9;
+        
+        
+        .close-btn {
+          position: absolute;
+          top: 40px;
+          right: 40px;
+          background: #8B6F47;
+          color: white;
+          border: none;
+          width: 35px;
+          height: 35px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s;
+          font-size: 24px;
+          padding: 0;
+        }
+        
+        .close-btn:hover {
+            background: #6B5637;
+            transform: rotate(90deg);
+        }
+        
+        /* Área de mensajes */
+        .chat-messages {
+          position: absolute;
+          top: 120px;      /* Inicio del área amarilla */
+          left: 165px;     /* Evitar al profesor (aprox 1/3 del ancho) */
+          right: 0px;     /* Margen derecho del tablero */
+          bottom: 120px;   /* Espacio para el input */
+          padding: 20px;
+          overflow-y: auto;
+          background: transparent;
+          
+          /* Scrollbar personalizado estilo madera */
+          scrollbar-width: thin;
+          scrollbar-color: #8B6F47 rgba(255, 255, 255, 0.1);
         }
         
         .message {
-            margin: 12px 0;
-            padding: 14px 18px;
-            border-radius: 15px;
-            animation: fadeIn 0.3s ease-in;
-            position: relative;
+          margin-bottom: 12px;
+          max-width: 75%;
+          padding: 10px 16px;
+          border-radius: 18px;
+          font-size: 14px;
+          line-height: 1.4;
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
         .user-message {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-align: right;
-            margin-left: 20%;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
+          background: linear-gradient(135deg, #8B6F47 0%, #A68B5C 100%);
+          color: white;
+          align-self: flex-end;
         }
         
         .bot-message {
-            background: white;
-            color: #333;
-            margin-right: 20%;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          background: white;
+          color: #333;
+          align-self: flex-start;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        .subtitle {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
+        .message b {
+            font-weight: 600;
         }
+        
         .speak-button {
             position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255, 255, 255, 0.2);
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.25);
             border: none;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
-            font-size: 16px;
+            font-size: 14px;
         }
         
         .bot-message .speak-button {
@@ -177,240 +189,264 @@
         }
         
         .speak-button.speaking {
-            animation: pulse 1s infinite;
+            animation: pulse 1.2s infinite;
             background: #f5576c;
             color: white;
         }
         
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 87, 108, 0.7); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 87, 108, 0); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(245, 87, 108, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 87, 108, 0); }
         }
         
-        .controls-container {
-            display: flex;
-            gap: 10px;
+        /* Área de entrada */
+        .chat-input {
+          position: absolute;
+          bottom: 50px;    /* Ajustado para quedar dentro del tablero */
+          left: 130px;     /* Alineado con mensajes */
+          right: 0px;     /* Mismo margen que mensajes */
+          display: flex;
+          padding: 0;
+          background: transparent;
+          border: none;
+          gap: 10px;
         }
         
         #message {
-            flex: 1;
-            padding: 14px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 30px;
-            font-size: 16px;
-            outline: none;
-            transition: all 0.3s;
+          flex: 1;
+          padding: 12px 18px;
+          border: 2px solid #8B6F47;
+          border-radius: 25px;
+          background: rgba(255, 255, 255, 0.95);
+          font-size: 14px;
+          outline: none;
+          transition: all 0.3s;
         }
         
         #message:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+          border-color: #6B5637;
+          background: white;
+          box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.15);
         }
         
         button {
-            padding: 14px 25px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, #8B6F47 0%, #6B5637 100%);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s;
         }
         
         button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(139, 111, 71, 0.3);
         }
         
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none !important;
         }
         
         .voice-button {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            min-width: 60px;
+            background: linear-gradient(135deg, #3366CC);
+            min-width: 50px;
+            width: 50px;
             padding: 14px;
-            justify-content: center;
         }
         
         .voice-button.recording {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #3366CC);
             animation: recordPulse 1.5s infinite;
         }
         
         @keyframes recordPulse {
             0% { box-shadow: 0 0 0 0 rgba(250, 112, 154, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(250, 112, 154, 0); }
+            70% { box-shadow: 0 0 0 15px rgba(250, 112, 154, 0); }
             100% { box-shadow: 0 0 0 0 rgba(250, 112, 154, 0); }
         }
         
+        /* Indicador de carga */
         .loading {
-            display: none;
-            text-align: center;
-            color: #667eea;
-            margin: 10px 0;
-            font-weight: 500;
+          position: absolute;
+          top: 90px;
+          left: 280px;
+          right: 80px;
+          display: none;
+          text-align: center;
+          color: #2E7D32;
+          font-weight: 600;
+          padding: 10px;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 12px;
+          margin: 0;
         }
         
         .loading.show {
-            display: block;
-        }
-        
-        .settings-row {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-top: 15px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
-        }
-        
-        .setting-item {
             display: flex;
             align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .loading:after {
+            content: "";
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(76, 175, 80, 0.3);
+            border-radius: 50%;
+            border-top-color: #3366CC;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Indicador de grabación */
+        .recording-indicator {
+          position: absolute;
+          top: 90px;
+          left: 280px;
+          right: 80px;
+          display: none;
+          text-align: center;
+          padding: 8px;
+          background: rgba(245, 87, 108, 0.1);
+          color: #f5576c;
+          font-weight: 600;
+          font-size: 14px;
+          border-radius: 8px;
+        }
+        
+        .recording-indicator.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
         }
         
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 24px;
-            background: #ccc;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: background 0.3s;
+        .recording-indicator:before {
+            content: "●";
+            color: #f5576c;
+            animation: blink 1s infinite;
         }
         
-        .toggle-switch.active {
-            background: #667eea;
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
         }
         
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            top: 2px;
-            left: 2px;
-            transition: transform 0.3s;
-        }
-        
-        .toggle-switch.active::after {
-            transform: translateX(26px);
-        }
-        
-        input[type="range"] {
-            width: 100px;
-        }
-        
-        .status-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 12px;
-            background: #e8f4e8;
-            color: #2e7d2e;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .status-indicator.error {
-            background: #ffe5e5;
-            color: #d32f2f;
-        }
+        /* Ajustes responsivos */
+        @media (max-width: 950px) {
+    .chat-container {
+        width: 90%;
+        max-width: 898px;
+        height: auto;
+        aspect-ratio: 898/550;
+        right: 5%;
+        bottom: 80px;
+        background-size: contain;
+    }
+    
+    .chat-messages,
+    .chat-input,
+    .loading,
+    .recording-indicator {
+        left: 31%;  /* Mantener proporción */
+        right: 9%;
+    }
+}
 
-        .info-banner {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            color: #155724;
-            padding: 12px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+@media (max-width: 600px) {
+    .chat-container {
+        width: 95%;
+        bottom: 60px;
+        right: 2.5%;
+    }
+    
+    .chat-messages {
+        top: 22%;
+        bottom: 22%;
+    }
+    
+    .chat-input {
+        bottom: 9%;
+    }
+}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header"> 
-            <div class="logo">
-                <span style="font-size: 40px;">🎓</span>
-                <h1>Asistente Educativo Inteligente</h1>
-                <span style="font-size: 40px;">📚</span>
-            </div>
-            <div class="subtitle">Secretaría de Educación</div>
+    <!-- Botón flotante del chatbot -->
+    <div class="chatbot-button" id="chatbotButton"></div>
+    
+    <!-- Contenedor del chat -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <h3>Profe Alex - Asistente Virtual</h3>
+            <button class="close-btn" id="closeChat">&times;</button>
         </div>
         
-       
+        <div class="recording-indicator" id="recordingIndicator">Grabando...</div>
         
-        <div class="voice-selector">
-            
-            <div class="settings-row">
-                <div class="setting-item">
-                    <label>🔊 Auto-reproducir voz:</label>
-                    <div class="toggle-switch" id="autoSpeakToggle" onclick="toggleAutoSpeak()"></div>
-                </div>
-               
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                <b>Profe Alex:</b> ¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre Ciencias Naturales, Ciencias Sociales, Matemáticas, Español o Inglés.
             </div>
         </div>
         
-        <div id="chat"></div>
         <div class="loading" id="loading">
-            <span>🤔 Procesando...</span>
+            <span>Procesando tu pregunta...</span>
         </div>
         
-        <div class="controls-container">
-            <input type="text" id="message" placeholder="Escribe tu mensaje o usa el micrófono..." autocomplete="off">
-            <button id="sendBtn" onclick="sendMessage()">
-                📤 Enviar
-            </button>
-            <button class="voice-button" id="voiceBtn" onclick="toggleVoiceRecording()">
-                🎤
-            </button>
+        <div class="chat-input">
+            <input type="text" id="message" placeholder="Escribe tu pregunta o usa el micrófono..." autocomplete="off">
+            <button id="sendBtn">➤</button>
+            <button class="voice-button" id="voiceBtn">🎤</button>
         </div>
     </div>
 
     <script>
-  // Config
+  // Configuración
   const FIXED_RATE = 1.0;
 
   // Variables globales
-  let selectedVoice = 'gonzalo'; // Voz fija
-  let autoSpeak = true;          // Auto-reproducir siempre activo
+  let selectedVoice = 'gonzalo';
+  let autoSpeak = true;
   let recognition = null;
   let isRecording = false;
   let messageCounter = 0;
   let currentAudio = null;
   let isSpeaking = false;
-  let useEdgeTTS = true; // Edge TTS si está disponible
+  let useEdgeTTS = true;
+
+  // Elementos del DOM
+  const chatbotButton = document.getElementById('chatbotButton');
+  const chatContainer = document.getElementById('chatContainer');
+  const closeChat = document.getElementById('closeChat');
+  const chatMessages = document.getElementById('chatMessages');
+  const userInput = document.getElementById('message');
+  const sendButton = document.getElementById('sendBtn');
+  const voiceButton = document.getElementById('voiceBtn');
+  const recordingIndicator = document.getElementById('recordingIndicator');
+  const loadingDiv = document.getElementById('loading');
 
   // Inicialización
   document.addEventListener('DOMContentLoaded', () => {
-    // Marcar visualmente el toggle como activo (si existe)
-    const toggle = document.getElementById('autoSpeakToggle');
-    if (toggle) toggle.classList.add('active');
-
-    // Asegurar voz Gonzalo sin depender del DOM
-    selectVoice('gonzalo');
-
-    // Inicializar features
+    // Inicializar características
     initializeSpeechRecognition();
     setupEventListeners();
     checkEdgeTTSAvailability();
-    showWelcomeMessage();
-    const msg = document.getElementById('message');
-    if (msg) msg.focus();
+    
+    // Enfocar en el input cuando se abre el chat
+    chatbotButton.addEventListener('click', () => {
+        setTimeout(() => userInput.focus(), 300);
+    });
   });
 
   // Verificar disponibilidad de Edge TTS
@@ -418,57 +454,26 @@
     try {
       const response = await fetch('/voices');
       if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Edge TTS disponible con voces:', data);
         useEdgeTTS = true;
-        updateStatus('✅ Voces naturales Microsoft listas', false);
+        console.log('✅ Edge TTS disponible');
       } else {
         useEdgeTTS = false;
-        updateStatus('⚠️ Usando voces del sistema', true);
+        console.log('⚠️ Usando voces del sistema');
       }
     } catch (error) {
       console.error('Error verificando Edge TTS:', error);
       useEdgeTTS = false;
-      updateStatus('⚠️ Usando voces del sistema', true);
     }
   }
 
-  // Actualizar indicador de estado (no falla si no existe)
-  function updateStatus(text, isError = false) {
-    const indicator = document.getElementById('statusIndicator');
-    if (!indicator) return; // No hay indicador en el DOM actual
-    indicator.textContent = text;
-    indicator.classList.toggle('error', !!isError);
-  }
-
-  // Seleccionar voz (seguro aunque no haya tarjetas de voz en el DOM)
-  function selectVoice(voice) {
-    selectedVoice = voice;
-    const option = document.querySelector(`[data-voice="${voice}"]`);
-    if (option) {
-      document.querySelectorAll('.voice-option').forEach(o => o.classList.remove('selected'));
-      option.classList.add('selected');
-    }
-    console.log('Voz seleccionada:', voice);
-  }
-
-  // Toggle auto-speak (si quieres que nunca se apague, fuerza true aquí)
+  // Toggle auto-speak
   function toggleAutoSpeak() {
     autoSpeak = !autoSpeak;
-    const toggle = document.getElementById('autoSpeakToggle');
-    if (toggle) toggle.classList.toggle('active', autoSpeak);
   }
 
-  // Probar voz
-  async function testVoice() {
-    const testText = "Hola, soy tu asistente de inteligencia artificial con voz natural. ¿En qué puedo ayudarte hoy?";
-    await speakWithEdgeTTS(testText);
-  }
-
-  // Hablar con Edge TTS (velocidad fija 1.0)
+  // Hablar con Edge TTS
   async function speakWithEdgeTTS(text, button = null) {
     if (!useEdgeTTS) {
-      // Fallback a síntesis del navegador
       speakWithBrowserTTS(text, button);
       return;
     }
@@ -494,7 +499,7 @@
 
       // Crear y reproducir audio
       currentAudio = new Audio(data.audio);
-      currentAudio.playbackRate = FIXED_RATE; // SIEMPRE 1.0
+      currentAudio.playbackRate = FIXED_RATE;
 
       currentAudio.onended = () => {
         if (button) button.classList.remove('speaking');
@@ -514,24 +519,11 @@
     } catch (error) {
       console.error('Error con Edge TTS:', error);
       if (button) button.classList.remove('speaking');
-      // Fallback a síntesis del navegador
       speakWithBrowserTTS(text, button);
     }
   }
 
-   function showWelcomeMessage() {
-            const chatDiv = document.getElementById('chat');
-            chatDiv.innerHTML = `
-                <div class="message bot-message">
-                    <b>🤖 Asistente:</b> ¡Bienvenido al sistema de consultas educativas! 
-                    Puedo responder preguntas basándome en los documentos oficiales de la Secretaría de Educación.
-                    <br><br>
-                    ¿En qué puedo ayudarte hoy?
-                </div>
-            `;
-        }
-
-  // Fallback: síntesis del navegador (velocidad fija 1.0)
+  // Fallback: síntesis del navegador
   function speakWithBrowserTTS(text, button = null) {
     if (!window.speechSynthesis) {
       console.error('Síntesis de voz no disponible');
@@ -542,7 +534,7 @@
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
-    utterance.rate = FIXED_RATE; // SIEMPRE 1.0
+    utterance.rate = FIXED_RATE;
 
     if (button) {
       utterance.onstart = () => button.classList.add('speaking');
@@ -557,7 +549,11 @@
   function initializeSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      voiceButton.style.display = 'none';
+      userInput.placeholder = 'Escribe tu pregunta...';
+      return;
+    }
 
     recognition = new SpeechRecognition();
     recognition.lang = 'es-ES';
@@ -565,11 +561,10 @@
     recognition.interimResults = true;
 
     recognition.onstart = () => {
-      console.log('Reconocimiento iniciado');
-      const btn = document.getElementById('voiceBtn');
-      if (btn) btn.classList.add('recording');
-      const input = document.getElementById('message');
-      if (input) input.placeholder = '🎤 Escuchando...';
+      isRecording = true;
+      voiceButton.classList.add('recording');
+      recordingIndicator.classList.add('active');
+      userInput.placeholder = '🎤 Escuchando...';
     };
 
     recognition.onresult = (event) => {
@@ -582,8 +577,7 @@
         else interimTranscript += transcript;
       }
 
-      const input = document.getElementById('message');
-      if (input) input.value = finalTranscript || interimTranscript;
+      userInput.value = finalTranscript || interimTranscript;
 
       if (finalTranscript) sendMessage();
     };
@@ -598,10 +592,10 @@
     };
   }
 
-  // Toggle grabación
+  // Toggle grabación de voz
   function toggleVoiceRecording() {
     if (!recognition) {
-      alert('El reconocimiento de voz no está disponible');
+      alert('El reconocimiento de voz no está disponible en tu navegador');
       return;
     }
 
@@ -618,29 +612,20 @@
       }
 
       recognition.start();
-      isRecording = true;
     }
   }
 
   // Detener grabación
   function stopRecording() {
     isRecording = false;
-    const btn = document.getElementById('voiceBtn');
-    if (btn) btn.classList.remove('recording');
-    const input = document.getElementById('message');
-    if (input) input.placeholder = 'Escribe tu mensaje o usa el micrófono...';
+    voiceButton.classList.remove('recording');
+    recordingIndicator.classList.remove('active');
+    userInput.placeholder = 'Escribe tu pregunta o usa el micrófono...';
   }
 
   // Enviar mensaje
   async function sendMessage() {
-    const messageInput = document.getElementById('message');
-    const chatDiv = document.getElementById('chat');
-    const loadingDiv = document.getElementById('loading');
-    const sendBtn = document.getElementById('sendBtn');
-
-    if (!messageInput || !chatDiv) return;
-
-    const message = messageInput.value.trim();
+    const message = userInput.value.trim();
     if (!message) return;
 
     // ID único para mensajes
@@ -648,21 +633,15 @@
     const botMsgId = `bot-${messageCounter++}`;
 
     // Mostrar mensaje del usuario
-    chatDiv.innerHTML += `
-      <div class="message user-message" id="${userMsgId}">
-        <button class="speak-button" onclick="speakMessage('${escapeForSpeech(message)}', this)" title="Reproducir">🔊</button>
-        <b>Tú:</b> ${escapeHtml(message)}
-      </div>
-    `;
+    addMessage(message, 'user', userMsgId);
 
     // Limpiar y deshabilitar
-    messageInput.value = '';
-    if (sendBtn) sendBtn.disabled = true;
-    if (loadingDiv) loadingDiv.classList.add('show');
+    userInput.value = '';
+    sendButton.disabled = true;
+    loadingDiv.classList.add('show');
+    chatContainer.classList.add('thinking');
 
     if (isRecording && recognition) recognition.stop();
-
-    chatDiv.scrollTop = chatDiv.scrollHeight;
 
     try {
       const response = await fetch('/chat', {
@@ -677,35 +656,45 @@
       if (data.error) throw new Error(data.error);
 
       // Mostrar respuesta
-      const botResponse = data.response;
-      chatDiv.innerHTML += `
-        <div class="message bot-message" id="${botMsgId}">
-          <button class="speak-button" onclick="speakMessage('${escapeForSpeech(botResponse)}', this)" title="Reproducir">🔊</button>
-          <b>🤖 Asistente:</b> ${escapeHtml(botResponse)}
-        </div>
-      `;
+      addMessage(data.response, 'bot', botMsgId);
 
       // Auto-reproducir si está activado
       if (autoSpeak) {
         setTimeout(async () => {
           const button = document.querySelector(`#${botMsgId} .speak-button`);
-          await speakWithEdgeTTS(botResponse, button);
+          await speakWithEdgeTTS(data.response, button);
         }, 100);
       }
 
     } catch (error) {
       console.error('Error:', error);
-      chatDiv.innerHTML += `
-        <div class="message bot-message" style="background: #ffe5e5; color: #e74c3c;">
-          <b>Error:</b> ${escapeHtml(error.message)}
-        </div>
-      `;
+      addMessage(`Error: ${error.message}`, 'bot', botMsgId);
     } finally {
-      if (sendBtn) sendBtn.disabled = false;
-      if (loadingDiv) loadingDiv.classList.remove('show');
-      messageInput.focus();
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+      chatContainer.classList.remove('thinking');
+      sendButton.disabled = false;
+      loadingDiv.classList.remove('show');
+      userInput.focus();
     }
+  }
+
+  // Añadir mensaje al chat
+  function addMessage(text, sender, id) {
+    const messageElement = document.createElement('div');
+    messageElement.id = id;
+    messageElement.classList.add('message');
+    messageElement.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+    
+    const speakerHtml = sender === 'bot' ? 
+      `<button class="speak-button" onclick="speakMessage('${escapeForSpeech(text)}', this)" title="Reproducir">🔊</button>` : 
+      `<button class="speak-button" onclick="speakMessage('${escapeForSpeech(text)}', this)" title="Reproducir">🔊</button>`;
+    
+    messageElement.innerHTML = `
+      ${speakerHtml}
+      <b>${sender === 'user' ? 'Tú' : '🤖 Profe Alex'}:</b> ${escapeHtml(text)}
+    `;
+    
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   // Hablar mensaje
@@ -713,17 +702,31 @@
     await speakWithEdgeTTS(text, button);
   }
 
-  // Event listeners (solo Enter; sin slider de velocidad)
+  // Configurar event listeners
   function setupEventListeners() {
-    const input = document.getElementById('message');
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-    }
+    // Toggle chat
+    chatbotButton.addEventListener('click', () => {
+      chatContainer.classList.toggle('active');
+    });
+    
+    // Cerrar chat
+    closeChat.addEventListener('click', () => {
+      chatContainer.classList.remove('active');
+    });
+    
+    // Enviar mensaje
+    sendButton.addEventListener('click', sendMessage);
+    
+    // Enviar con Enter
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    
+    // Grabación de voz
+    voiceButton.addEventListener('click', toggleVoiceRecording);
   }
 
   // Utilidades

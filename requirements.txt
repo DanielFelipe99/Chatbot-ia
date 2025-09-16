@@ -5,4 +5,6 @@ edge-tts
 beautifulsoup4
 lxml
 urllib3 
-
+pdfplumber
+pytesseract
+pdf2image

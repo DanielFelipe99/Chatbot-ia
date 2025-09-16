@@ -9,9 +9,20 @@ import os
 import threading
 from bs4 import BeautifulSoup
 import urllib3
-from urllib.parse import urljoin, urlparse
-import re
+from urllib.parse import urljoin
 import time
+import json
+import logging
+import glob
+from pathlib import Path
+import re
+import unicodedata
+from typing import Optional
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Desactivar warnings de SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -19,7 +30,7 @@ app = Flask(__name__)
 CORS(app)
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-SED_NARINO_URL = "https://sed.narino.gov.co/"
+AVAS2_URL = "https://investic.narino.gov.co/avas-2/"
 
 # Voces de Microsoft Edge
 EDGE_VOICES_ES = {
@@ -37,11 +48,119 @@ EDGE_VOICES_ES = {
 
 # Cache para almacenar contenido scrapeado
 SCRAPED_CACHE = {}
-CACHE_TIMEOUT = 3600  # 1 hora en segundos
+CACHE_TIMEOUT = 3600  # 1 hora
 
-# Crear un loop de asyncio en un thread separado
+# Claves de materias y palabras clave
+SUBJECT_KEYWORDS = {
+    'ciencias_naturales': [
+        'ciencias naturales', 'naturales', 'ciencia', 'biologia', 'biología',
+        'seres vivos', 'ecosistema', 'ciclo del agua', 'agua', 'sol'
+    ],
+    'ciencias_sociales': [
+        'ciencias sociales', 'sociales', 'historia', 'geografía', 'democracia',
+        'cultura', 'sociedad'
+    ],
+    'matematicas': [
+        'matemáticas', 'matematicas', 'aritmética', 'aritmetica', 'álgebra', 'algebra',
+        'geometría', 'geometria', 'estadística', 'estadistica', 'cálculo', 'calculo'
+    ],
+    'espanol': [
+        'español', 'espanol', 'gramática', 'gramatica', 'literatura', 'lectura',
+        'comprensión lectora', 'comprension lectora', 'escritura', 'ortografía', 'ortografia'
+    ],
+    'ingles': [
+        'inglés', 'ingles', 'grammar', 'vocabulary', 'reading', 'writing', 'speaking'
+    ]
+}
+
+# Tarjetas clave dentro de cada módulo
+CARD_KEYWORDS = {
+    'mi_curso': ['mi curso', 'mi aula', 'mi clase'],
+    'temas': ['temas', 'contenidos', 'contenido', 'unidades', 'lecciones'],
+    'anuncios': ['anuncios', 'novedades'],
+    'tareas': ['tareas', 'actividades', 'evaluaciones'],
+    'comunicate': ['comunicate', 'comunícate', 'contacto', 'foro'],
+    'aprueba': ['aprueba', 'aprobación', 'aprobacion'],
+    'puntuacion': ['puntuación', 'puntuacion', 'puntaje'],
+    'investiga': ['investiga', 'investigación', 'investigacion']
+}
+
+# Overrides manuales de tarjetas por materia (URLs conocidas/proporcionadas)
+SUBJECT_CARD_OVERRIDES = {
+    'ciencias_naturales': {
+        'mi_curso': 'https://testsed.narino.gov.co/Naturales/sistema/descripcion.php'
+        # 'temas': 'URL_SI_EXISTE'  # Podemos añadirla cuando esté disponible
+    }
+}
+
+# Información estructurada actualizada basada en el HTML real
+AVAS2_REAL_INFO = {
+    "titulo": "AVAS-2 - Ambientes Virtuales de Aprendizaje",
+    "plataforma": "Investic - Secretaría de Educación de Nariño",
+    "url_base": "https://investic.narino.gov.co/avas-2/",
+    "asignaturas": {
+        "ciencias_naturales": {
+            "nombre": "Ciencias Naturales",
+            "url": "https://investic.narino.gov.co/avas-2/ava-ciencias-naturales/",
+            "descripcion": "Ambiente virtual para el aprendizaje de ciencias naturales",
+            "imagen": "ciencias-naturales.png",
+            "temas_posibles": ["Seres de mi entorno", "Seres vivos e inertes", "Adaptacion de los seres vivos", "ciclo de la vida", "Tipos de animales",
+                      "Necesidades de los seres vivos","Manejo del agua","Ciclo del agua","El sol como fuente de energia, luz y calor",
+                      "El sol en nuestro entorno","Guardianes del agua"]
+        },
+        "ciencias_sociales": {
+            "nombre": "Ciencias Sociales",
+            "url": "https://investic.narino.gov.co/avas-2/ava-ciencias-sociales/",
+            "descripcion": "Ambiente virtual para el aprendizaje de ciencias sociales",
+            "imagen": "ChatGPT-Image-22-ago-2025-10_35_16.png",
+            "temas_posibles": ["Identidad Cultural", "Cultura","Diversidad","Tipos de agresiones","El conflicto", "Organizaciones sociales", 
+                        "La familia, escuela, el barrio","La convivencia", "Manual de convivencia","Derechos y deberes","Sociedad"]
+        },
+        "matematicas": {
+            "nombre": "Matemáticas",
+            "url": "https://investic.narino.gov.co/avas-2/ava-matematicas/",
+            "descripcion": "Ambiente virtual para el aprendizaje de matemáticas",
+            "imagen": "ChatGPT-Image-22-ago-2025-10_41_12.png",
+            "temas_posibles": ["Aprende matematicas cuidando el ambiente", "Aprende matematicas administrando una tienda"]
+        },
+        "espanol": {
+            "nombre": "Español",
+            "url": "https://investic.narino.gov.co/avas-2/ava-espanol/",
+            "descripcion": "Ambiente virtual para el aprendizaje de español",
+            "imagen": "ChatGPT-Image-22-ago-2025-10_59_35.png",
+            "temas_posibles": ["Los textos", "La narracion", "La anecdota", "La receta", "Elaboracion de textos informativos",
+                        "Literatura", "La fabula, el cuento y poemas", "Los mitos y leyendas", "Las coplas, retahila y cancion","El periodico",
+                        "La noticia","El telefono" , "La carta", "medios de comunicacion"]
+        },
+        "ingles": {
+            "nombre": "Inglés",
+            "url": "https://investic.narino.gov.co/avas-2/ava-ingles/",
+            "descripcion": "Ambiente virtual para el aprendizaje de inglés",
+            "imagen": "ChatGPT-Image-22-ago-2025-11_15_17.png",
+            "temas_posibles": ["Whats your name?", "The alphabet", "Greetings", "The colors", "The family", "The numbers", "Domestic and wild animals",
+                    "The body","Objects of my house","School supplies","Geometric figures","Fruits and vegetables"]
+        }
+    },
+    "otros_recursos": {
+        "ovas": "https://investic.narino.gov.co/ovas-3/",
+        "agau": "https://agauregional2.talentum.edu.co/",
+        "mundo_3d": "https://si.aulasregionalfase2.com/menu",
+        "colcha_tesoros": "https://colchadetesoros.narino.gov.co/",
+        "aulas_steam": "https://steam.narino.gov.co/"
+    }
+}
+
+# Crear loop de asyncio
 loop = None
 thread = None
+
+# Directorio de documentos locales (transcripciones, guías, etc.)
+BASE_DIR = Path(__file__).resolve().parent.parent
+DOCS_DIR = str(BASE_DIR / 'docs')
+DOCS_CACHE = {
+    'timestamp': 0,
+    'docs': []  # lista de {path, text, subject}
+}
 
 def start_async_loop():
     global loop
@@ -57,382 +176,417 @@ def run_async(coro):
     future = asyncio.run_coroutine_threadsafe(coro, loop)
     return future.result()
 
-def scrape_sed_narino():
-    """Scraping completo de SED Nariño con múltiples secciones"""
+def scrape_avas2_real():
+    """Scraping real basado en la estructura HTML actual de AVAS-2"""
     try:
-        print(f"🌐 Scrapeando SED Nariño profundamente...")
+        logger.info("🌐 Scrapeando AVAS-2 con selectores específicos...")
         
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
         }
         
-        # URLs importantes de SED Nariño (basado en estructura típica)
-        urls_importantes = [
-            SED_NARINO_URL,  # Página principal
-            f"{SED_NARINO_URL}noticias",
-            f"{SED_NARINO_URL}documentos",
-            f"{SED_NARINO_URL}normatividad",
-            f"{SED_NARINO_URL}programas",
-            f"{SED_NARINO_URL}instituciones",
-            f"{SED_NARINO_URL}contacto",
-        ]
-        
-        info_completa = {
-            'titulo': '',
-            'noticias': [],
-            'documentos': [],
-            'programas_educativos': [],
-            'normatividad': [],
-            'contactos': [],
-            'enlaces_importantes': [],
-            'texto_relevante': ''
-        }
-        
-        for url in urls_importantes:
-            try:
-                print(f"📄 Scrapeando: {url}")
-                response = requests.get(url, headers=headers, verify=False, timeout=15)
-                response.raise_for_status()
-                
-                soup = BeautifulSoup(response.content, 'lxml')
-                
-                # Extraer información según el tipo de página
-                if url.endswith('/noticias') or 'noticia' in url:
-                    info_completa['noticias'].extend(extraer_noticias(soup))
-                elif 'documento' in url or 'normatividad' in url:
-                    info_completa['documentos'].extend(extraer_documentos(soup))
-                elif 'programa' in url:
-                    info_completa['programas_educativos'].extend(extraer_programas(soup))
-                elif 'contacto' in url:
-                    info_completa['contactos'].extend(extraer_contactos(soup))
-                else:
-                    # Página principal o genérica
-                    if not info_completa['titulo']:
-                        info_completa['titulo'] = soup.find('title').get_text().strip() if soup.find('title') else ''
-                    
-                    info_completa['enlaces_importantes'].extend(extraer_enlaces_importantes(soup))
-                    info_completa['texto_relevante'] += extraer_texto_relevante(soup)
-                    
-            except Exception as e:
-                print(f"⚠️ Error scrapeando {url}: {str(e)}")
-                continue
-        
-        # Procesar documentos PDF y Word (si existen)
-        info_completa['documentos'].extend(buscar_documentos_adjuntos(soup))
-        
-        # Guardar en cache
-        SCRAPED_CACHE['sed_narino'] = {
-            'data': info_completa,
-            'timestamp': time.time()
-        }
-        
-        print(f"✅ Scraping completo exitoso. Noticias: {len(info_completa['noticias'])}, Documentos: {len(info_completa['documentos'])}")
-        return info_completa
-        
-    except Exception as e:
-        print(f"❌ Error en scraping completo: {str(e)}")
-        return {'error': str(e)}
-
-# Funciones auxiliares para extracción específica
-def extraer_noticias(soup):
-    """Extraer noticias estructuradas"""
-    noticias = []
-    try:
-        # Buscar en múltiples estructuras comunes de noticias
-        selectores = [
-            'article.noticia', 'div.noticia', '.news-item', '.post',
-            '[class*="noticia"]', '[class*="news"]', '[class*="post"]'
-        ]
-        
-        for selector in selectores:
-            elementos = soup.select(selector)
-            for elem in elementos[:10]:  # Limitar a 10 noticias por sección
-                try:
-                    titulo = elem.find(['h2', 'h3', 'h4', 'h5']).get_text().strip() if elem.find(['h2', 'h3', 'h4', 'h5']) else ''
-                    fecha = elem.find(['time', '.fecha', '[class*="date"]'])
-                    fecha_texto = fecha.get_text().strip() if fecha else ''
-                    contenido = elem.get_text().strip()[:1000]  # Primeros 1000 caracteres
-                    
-                    if titulo and contenido:
-                        noticias.append({
-                            'titulo': titulo,
-                            'fecha': fecha_texto,
-                            'contenido': contenido,
-                            'url': obtener_url_noticia(elem)
-                        })
-                except:
-                    continue
-    except Exception as e:
-        print(f"Error extrayendo noticias: {e}")
-    
-    return noticias
-
-def extraer_documentos(soup):
-    """Extraer documentos y normatividad"""
-    documentos = []
-    try:
-        # Buscar enlaces a documentos
-        for enlace in soup.find_all('a', href=True):
-            href = enlace['href']
-            texto = enlace.get_text().strip()
-            
-            # Filtrar documentos importantes
-            if (href.endswith(('.pdf', '.doc', '.docx', '.xlsx')) or 
-                'documento' in href.lower() or 'normatividad' in href.lower()):
-                
-                if href.startswith('/'):
-                    href = urljoin(SED_NARINO_URL, href)
-                
-                documentos.append({
-                    'titulo': texto if texto else href.split('/')[-1],
-                    'url': href,
-                    'tipo': href.split('.')[-1].upper() if '.' in href else 'LINK'
-                })
-    except Exception as e:
-        print(f"Error extrayendo documentos: {e}")
-    
-    return documentos
-
-def extraer_programas(soup):
-    """Extraer programas educativos"""
-    programas = []
-    try:
-        # Buscar programas educativos (estructura común)
-        selectores = ['.programa', '.project', '.service', '[class*="programa"]']
-        
-        for selector in selectores:
-            elementos = soup.select(selector)
-            for elem in elementos:
-                try:
-                    titulo = elem.find(['h3', 'h4', 'h5']).get_text().strip() if elem.find(['h3', 'h4', 'h5']) else ''
-                    descripcion = elem.get_text().strip()[:500]
-                    
-                    if titulo:
-                        programas.append({
-                            'nombre': titulo,
-                            'descripcion': descripcion
-                        })
-                except:
-                    continue
-    except Exception as e:
-        print(f"Error extrayendo programas: {e}")
-    
-    return programas
-
-def extraer_contactos(soup):
-    """Extraer información de contacto"""
-    contactos = []
-    try:
-        # Buscar información de contacto
-        selectores = [
-            '.contacto', '.address', '.phone', '.email',
-            '[class*="contact"]', '[class*="direccion"]'
-        ]
-        
-        for selector in selectores:
-            elementos = soup.select(selector)
-            for elem in elementos:
-                texto = elem.get_text().strip()
-                if texto and len(texto) > 10:
-                    contactos.append(texto)
-    except Exception as e:
-        print(f"Error extrayendo contactos: {e}")
-    
-    return contactos
-
-def extraer_enlaces_importantes(soup):
-    """Extraer enlaces importantes"""
-    enlaces = []
-    try:
-        palabras_clave = [
-            'educativo', 'programa', 'proyecto', 'noticia', 'documento',
-            'normatividad', 'contacto', 'sed', 'nariño', 'secretaría'
-        ]
-        
-        for enlace in soup.find_all('a', href=True):
-            texto = enlace.get_text().strip()
-            href = enlace['href']
-            
-            if texto and len(texto) > 3 and len(texto) < 100:
-                if href.startswith('/'):
-                    href = urljoin(SED_NARINO_URL, href)
-                
-                # Filtrar por palabras clave
-                if any(palabra in texto.lower() for palabra in palabras_clave) or any(palabra in href.lower() for palabra in palabras_clave):
-                    enlaces.append(f"{texto}: {href}")
-    except Exception as e:
-        print(f"Error extrayendo enlaces: {e}")
-    
-    return enlaces
-
-def extraer_texto_relevante(soup):
-    """Extraer texto relevante"""
-    texto_relevante = ""
-    try:
-        # Buscar en secciones con contenido importante
-        selectores = [
-            'main', 'article', 'section',
-            '.content', '.main-content', '.post-content',
-            '[class*="content"]', '[class*="text"]'
-        ]
-        
-        for selector in selectores:
-            elementos = soup.select(selector)
-            for elem in elementos:
-                texto = elem.get_text().strip()
-                if len(texto) > 100:
-                    texto_relevante += texto + "\n\n"
-    except Exception as e:
-        print(f"Error extrayendo texto: {e}")
-    
-    return texto_relevante[:5000]  # Limitar a 5000 caracteres
-
-def buscar_documentos_adjuntos(soup):
-    """Buscar documentos adjuntos en la página"""
-    documentos = []
-    try:
-        for enlace in soup.find_all('a', href=True):
-            href = enlace['href']
-            if href.endswith(('.pdf', '.doc', '.docx')):
-                if href.startswith('/'):
-                    href = urljoin(SED_NARINO_URL, href)
-                
-                documentos.append({
-                    'titulo': enlace.get_text().strip() or href.split('/')[-1],
-                    'url': href,
-                    'tipo': href.split('.')[-1].upper()
-                })
-    except Exception as e:
-        print(f"Error buscando documentos: {e}")
-    
-    return documentos
-
-def obtener_url_noticia(elemento):
-    """Obtener URL completa de una noticia"""
-    try:
-        enlace = elemento.find('a', href=True)
-        if enlace:
-            href = enlace['href']
-            if href.startswith('/'):
-                return urljoin(SED_NARINO_URL, href)
-            return href
-    except:
-        pass
-    return ""
-    """Obtener información de la página SED Nariño"""
-    try:
-        print(f"🌐 Scrapeando: {SED_NARINO_URL}")
-        
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
-        response = requests.get(SED_NARINO_URL, headers=headers, verify=False, timeout=10)
+        response = requests.get(AVAS2_URL, headers=headers, verify=False, timeout=20)
         response.raise_for_status()
         
-        soup = BeautifulSoup(response.content, 'lxml')
+        soup = BeautifulSoup(response.content, 'html.parser')
         
-        # Extraer información importante
+        # Extraer información real de la página
         info = {
-            'titulo': soup.find('title').get_text().strip() if soup.find('title') else '',
-            'noticias': [],
-            'enlaces_importantes': [],
-            'texto_relevante': ''
+            'titulo': 'AVAS-2 - Ambientes Virtuales de Aprendizaje',
+            'asignaturas': [],
+            'navegacion': [],
+            'descripcion': '',
+            'estructura_real': {}
         }
         
-        # Extraer noticias (ajusta según la estructura real de la página)
-        noticias = soup.find_all(['article', 'div'], class_=re.compile(r'noticia|news|post', re.I))
-        for noticia in noticias[:5]:  # Limitar a 5 noticias
-            try:
-                titulo = noticia.find(['h2', 'h3', 'h4']).get_text().strip() if noticia.find(['h2', 'h3', 'h4']) else ''
-                contenido = noticia.get_text().strip()[:500]  # Primeros 500 caracteres
-                if titulo and contenido:
-                    info['noticias'].append(f"{titulo}: {contenido}")
-            except:
-                continue
+        # Buscar el título real
+        title_elem = soup.find('title')
+        if title_elem:
+            info['titulo'] = title_elem.get_text().strip()
         
-        # Extraer enlaces importantes
-        for enlace in soup.find_all('a', href=True)[:10]:
-            texto = enlace.get_text().strip()
-            href = enlace['href']
-            if texto and len(texto) > 3 and len(texto) < 100:
-                if href.startswith('/'):
-                    href = urljoin(SED_NARINO_URL, href)
-                if 'sed.narino.gov.co' in href:
-                    info['enlaces_importantes'].append(f"{texto}: {href}")
+        # Extraer las asignaturas desde los módulos Divi (et_pb_blurb)
+        blurbs = soup.find_all('div', class_='et_pb_blurb')
+        for blurb in blurbs:
+            header = blurb.find('h4', class_='et_pb_module_header')
+            if header:
+                link = header.find('a')
+                if link:
+                    asignatura = {
+                        'nombre': link.get_text().strip(),
+                        'url': link.get('href', ''),
+                        'descripcion': ''
+                    }
+                    
+                    # Buscar descripción
+                    desc_div = blurb.find('div', class_='et_pb_blurb_description')
+                    if desc_div:
+                        desc_text = desc_div.get_text().strip()
+                        # Filtrar el texto placeholder
+                        if not desc_text.startswith("Your content goes here"):
+                            asignatura['descripcion'] = desc_text
+                    
+                    # Buscar imagen
+                    img = blurb.find('img')
+                    if img:
+                        asignatura['imagen'] = img.get('src', '')
+                        asignatura['imagen_alt'] = img.get('alt', '')
+                    
+                    info['asignaturas'].append(asignatura)
         
-        # Extraer texto general relevante
-        textos = []
-        for elemento in soup.find_all(['p', 'div'], class_=re.compile(r'content|text|description', re.I)):
-            texto = elemento.get_text().strip()
-            if len(texto) > 50 and len(texto) < 1000:
-                textos.append(texto)
+        # Extraer menú de navegación
+        nav_menu = soup.find('ul', class_='et-menu')
+        if nav_menu:
+            for item in nav_menu.find_all('a'):
+                nav_text = item.get_text().strip()
+                nav_href = item.get('href', '')
+                if nav_text and nav_href:
+                    info['navegacion'].append({
+                        'texto': nav_text,
+                        'url': nav_href
+                    })
         
-        info['texto_relevante'] = ' '.join(textos[:3])  # Primeros 3 párrafos
+        # Extraer breadcrumbs si existen
+        breadcrumbs = soup.find('div', class_='lwp-breadcrumbs')
+        if breadcrumbs:
+            info['breadcrumbs'] = breadcrumbs.get_text().strip()
         
         # Guardar en cache
-        SCRAPED_CACHE['sed_narino'] = {
+        SCRAPED_CACHE['avas2'] = {
             'data': info,
             'timestamp': time.time()
         }
         
-        print(f"✅ Scraping exitoso. Noticias: {len(info['noticias'])}")
+        logger.info(f"✅ Scraping exitoso. Asignaturas encontradas: {len(info['asignaturas'])}")
         return info
         
     except Exception as e:
-        print(f"❌ Error en scraping: {str(e)}")
-        return {'error': str(e)}
+        logger.error(f"❌ Error en scraping: {str(e)}")
+        # Devolver información estructurada como respaldo
+        return {
+            'error': str(e),
+            'fallback_data': AVAS2_REAL_INFO
+        }
 
-def get_sed_narino_info():
-    """Obtener información de SED Nariño con cache"""
-    cached = SCRAPED_CACHE.get('sed_narino')
-    
+def normalize_text(text):
+    if not text:
+        return ''
+    text = unicodedata.normalize('NFKD', text)
+    text = ''.join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"\s+", " ", text)
+    return text.strip().lower()
+
+def fetch_soup(url: str, headers: Optional[dict] = None):
+    try:
+        default_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9',
+        }
+        if headers:
+            default_headers.update(headers)
+        resp = requests.get(url, headers=default_headers, verify=False, timeout=20)
+        resp.raise_for_status()
+        return BeautifulSoup(resp.content, 'html.parser'), resp.url
+    except Exception as e:
+        logger.error(f"Error obteniendo URL {url}: {e}")
+        return None, url
+
+def extract_readable_text(soup: BeautifulSoup) -> str:
+    if soup is None:
+        return ''
+    # Preferir contenedores de contenido comunes (WordPress/Divi)
+    selectors = [
+        'article', '.entry-content', 'main', '.et_pb_section', '.et_pb_text', '.container', '#content'
+    ]
+    texts = []
+    nodes = []
+    for sel in selectors:
+        nodes = soup.select(sel)
+        if nodes:
+            break
+    if not nodes:
+        nodes = [soup.body or soup]
+    for node in nodes:
+        for el in node.find_all(['h1', 'h2', 'h3', 'h4', 'p', 'li']):
+            t = el.get_text(separator=' ', strip=True)
+            if t:
+                texts.append(t)
+    content = '\n'.join(texts)
+    # Reducir ruido
+    content = re.sub(r"\n{2,}", "\n", content)
+    return content.strip()
+
+def guess_subject_from_path(path_str: str) -> str:
+    p = normalize_text(path_str)
+    if 'social' in p:
+        return 'ciencias_sociales'
+    if 'natural' in p or 'ciencia' in p:
+        return 'ciencias_naturales'
+    if 'mate' in p:
+        return 'matematicas'
+    if 'espan' in p or 'españ' in p:
+        return 'espanol'
+    if 'ingl' in p:
+        return 'ingles'
+    return 'ciencias_naturales'
+
+def load_documents() -> list:
+    """Cargar documentos desde docs/ (pdf, txt, md) y cachearlos"""
+    docs: list[dict] = []
+    try:
+        os.makedirs(DOCS_DIR, exist_ok=True)
+        patterns = [
+            os.path.join(DOCS_DIR, '*.pdf'),
+            os.path.join(DOCS_DIR, '*.txt'),
+            os.path.join(DOCS_DIR, '*.md'),
+        ]
+        files = []
+        for pat in patterns:
+            files.extend(glob.glob(pat))
+        for path in files:
+            text = ''
+            if path.lower().endswith('.pdf'):
+                try:
+                    import pdfplumber
+                    with pdfplumber.open(path) as pdf:
+                        pages = [page.extract_text() or '' for page in pdf.pages]
+                        text = '\n'.join(pages)
+                except Exception as e:
+                    logger.warning(f"No se pudo leer PDF {path}: {e}")
+                    continue
+            else:
+                try:
+                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                        text = f.read()
+                except Exception as e:
+                    logger.warning(f"No se pudo leer archivo {path}: {e}")
+                    continue
+            text = re.sub(r"\s+", " ", text).strip()
+            if not text:
+                continue
+            docs.append({
+                'path': path,
+                'text': text,
+                'subject': guess_subject_from_path(path)
+            })
+        DOCS_CACHE['docs'] = docs
+        DOCS_CACHE['timestamp'] = time.time()
+        logger.info(f"📚 Documentos cargados: {len(docs)}")
+    except Exception as e:
+        logger.error(f"Error cargando documentos: {e}")
+    return docs
+
+def ensure_docs_loaded():
+    if not DOCS_CACHE['docs'] or (time.time() - DOCS_CACHE['timestamp']) > CACHE_TIMEOUT:
+        load_documents()
+
+def extract_snippets(text: str, query: str, max_chars: int = 1200) -> str:
+    q_words = [w for w in normalize_text(query).split() if len(w) > 2]
+    # Dividir por puntos o saltos de línea para intentar mantener coherencia
+    parts = re.split(r"(?<=[\.!?])\s+|\n+", text)
+    selected = []
+    score = 0
+    for p in parts:
+        pn = normalize_text(p)
+        hits = sum(1 for w in q_words if w in pn)
+        if hits:
+            selected.append(p.strip())
+            score += hits
+        if len(' '.join(selected)) >= max_chars:
+            break
+    if not selected:
+        return text[:max_chars]
+    return ' '.join(selected)[:max_chars]
+
+def search_docs(query: str, subject: Optional[str] = None, limit: int = 2) -> list:
+    ensure_docs_loaded()
+    docs = DOCS_CACHE['docs']
+    if subject:
+        docs = [d for d in docs if d.get('subject') == subject]
+    scored = []
+    qn = normalize_text(query)
+    for d in docs:
+        tn = normalize_text(d['text'])
+        # Puntuación simple por presencia de palabras clave
+        hits = sum(1 for w in set(qn.split()) if len(w) > 3 and w in tn)
+        subj_bonus = 3 if subject and d.get('subject') == subject else 0
+        scored.append((hits + subj_bonus, d))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    results = []
+    for sc, d in scored[:limit]:
+        if sc <= 0:
+            continue
+        snippet = extract_snippets(d['text'], query)
+        results.append({
+            'path': d['path'],
+            'subject': d.get('subject'),
+            'snippet': snippet
+        })
+    return results
+
+def find_modules_on_main(main_url: str) -> dict:
+    soup, final_url = fetch_soup(main_url)
+    modules: dict[str, str] = {}
+    if soup is None:
+        return modules
+    # Buscar anclas que contengan los nombres de las asignaturas
+    subject_names = {
+        'ciencias_naturales': ['ciencias naturales'],
+        'ciencias_sociales': ['ciencias sociales'],
+        'matematicas': ['matemáticas', 'matematicas'],
+        'espanol': ['español', 'espanol'],
+        'ingles': ['inglés', 'ingles']
+    }
+    for a in soup.find_all('a'):
+        text = normalize_text(a.get_text())
+        href = a.get('href')
+        if not href:
+            continue
+        for key, name_list in subject_names.items():
+            if any(name in text for name in name_list) or (f"ava-{key.replace('_', '-')}") in normalize_text(href):
+                modules[key] = urljoin(final_url, href)
+    # Fallback a datos conocidos si algo falta
+    for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
+        if key not in modules and asig.get('url'):
+            modules[key] = asig['url']
+    return modules
+
+def find_cards_in_module(module_url: str) -> dict:
+    soup, final_url = fetch_soup(module_url)
+    cards: dict[str, str] = {}
+    if soup is None:
+        return cards
+    # Buscar tarjetas por texto del enlace
+    for a in soup.find_all('a'):
+        text = normalize_text(a.get_text())
+        href = a.get('href')
+        if not href:
+            continue
+        for card_key, variants in CARD_KEYWORDS.items():
+            if any(v in text for v in variants):
+                cards[card_key] = urljoin(final_url, href)
+    return cards
+
+def scrape_subject(subject_key: str) -> dict:
+    logger.info(f"🔎 Scrapeando materia: {subject_key}")
+    modules = find_modules_on_main(AVAS2_URL)
+    module_url = modules.get(subject_key)
+    if not module_url:
+        logger.warning(f"No se encontró URL del módulo para {subject_key}")
+        return {}
+    cards = find_cards_in_module(module_url)
+    # Aplicar overrides manuales
+    if subject_key in SUBJECT_CARD_OVERRIDES:
+        cards.update(SUBJECT_CARD_OVERRIDES[subject_key])
+    subject_data: dict = {
+        'subject': subject_key,
+        'module_url': module_url,
+        'cards': cards,
+        'content': {}
+    }
+    # Solo priorizar Mi curso y Temas
+    for key in ['mi_curso', 'temas']:
+        url = cards.get(key)
+        if url:
+            soup, _ = fetch_soup(url)
+            text = extract_readable_text(soup)
+            subject_data['content'][key] = {
+                'url': url,
+                'text': text[:100000]  # limitar tamaño
+            }
+    SCRAPED_CACHE[f'subject:{subject_key}'] = {
+        'data': subject_data,
+        'timestamp': time.time()
+    }
+    return subject_data
+
+def get_subject_data(subject_key: str) -> dict:
+    cached = SCRAPED_CACHE.get(f'subject:{subject_key}')
     if cached and (time.time() - cached['timestamp']) < CACHE_TIMEOUT:
-        print("📦 Usando información en cache")
         return cached['data']
-    
-    return scrape_sed_narino()
+    return scrape_subject(subject_key)
 
-def formatear_informacion_completa(info):
-    """Formatear la información para el prompt de manera legible"""
-    texto = ""
+def get_avas2_info():
+    """Obtener información de AVAS-2 desde caché o scraping"""
+    cached = SCRAPED_CACHE.get('avas2')
+    if cached and (time.time() - cached['timestamp']) < CACHE_TIMEOUT:
+        logger.info("📦 Usando información AVAS-2 en cache")
+        return cached['data']
+    else:
+        logger.info("🔄 Realizando scraping de AVAS-2...")
+        return scrape_avas2_real()
+
+def crear_contexto_avas2(info_scraping, subject_data: Optional[dict] = None, docs_snippets: Optional[list] = None):
+    """Crear un contexto estructurado para el modelo"""
+    contexto = """
+GUÍA EDUCATIVA PARA EXPLICAR A NIÑOS
+====================================
+Habla con palabras sencillas y ejemplos cotidianos.
+Evita mencionar nombres de plataformas o marcas.
+
+ASIGNATURAS DISPONIBLES:
+"""
     
-    # 1. Formatear NOTICIAS
-    if info.get('noticias'):
-        texto += "📰 ÚLTIMAS NOTICIAS:\n"
-        for i, noticia in enumerate(info['noticias'][:3], 1):
-            texto += f"{i}. {noticia['titulo']}"
-            if noticia.get('fecha'):
-                texto += f" ({noticia['fecha']})"
-            texto += f": {noticia['contenido'][:200]}...\n"
-        texto += "\n"
+    # Si tenemos información del scraping, usarla
+    if info_scraping and 'asignaturas' in info_scraping and info_scraping['asignaturas']:
+        for asig in info_scraping['asignaturas']:
+            contexto += f"""
+- {asig.get('nombre', 'Sin nombre')}
+  URL: {asig.get('url', 'No disponible')}
+  Descripción: {asig.get('descripcion', 'Ambiente virtual de aprendizaje')}
+"""
+    else:
+        # Usar información de respaldo
+        for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
+            contexto += f"""
+- {asig['nombre']}
+  URL: {asig['url']}
+  Descripción: {asig['descripcion']}
+  Temas posibles: {', '.join(asig['temas_posibles'])}
+"""
     
-    # 2. Formatear DOCUMENTOS
-    if info.get('documentos'):
-        texto += "📄 DOCUMENTOS IMPORTANTES:\n"
-        for i, doc in enumerate(info['documentos'][:5], 1):
-            texto += f"{i}. {doc['titulo']} ({doc['tipo']})\n"
-        texto += "\n"
-    
-    # 3. Formatear PROGRAMAS
-    if info.get('programas_educativos'):
-        texto += "🎓 PROGRAMAS EDUCATIVOS:\n"
-        for i, programa in enumerate(info['programas_educativos'][:3], 1):
-            texto += f"{i}. {programa['nombre']}: {programa['descripcion'][:100]}...\n"
-        texto += "\n"
-    
-    # 4. Formatear CONTACTOS
-    if info.get('contactos'):
-        texto += "📞 INFORMACIÓN DE CONTACTO:\n"
-        for contacto in info['contactos'][:3]:
-            texto += f"- {contacto}\n"
-        texto += "\n"
-    
-    # 5. Información general
-    if info.get('texto_relevante'):
-        texto += f"📋 INFORMACIÓN GENERAL: {info['texto_relevante'][:1000]}...\n"
-    
-    return texto
+    contexto += """
+
+RECUERDA CÓMO EXPLICAR:
+- Usa frases cortas y claras.
+- Da uno o dos ejemplos simples.
+- Puedes proponer una mini-actividad o juego.
+"""
+    # Inyectar información específica de la materia si está disponible
+    if subject_data and subject_data.get('content'):
+        contexto += """
+
+CONTENIDOS CLAVE DE ESTA MATERIA
+=================================
+"""
+        content = subject_data['content']
+        if 'mi_curso' in content:
+            contexto += f"""
+- Sección: Mi curso (resumen)
+{content['mi_curso'].get('text', '')[:2000]}
+"""
+        if 'temas' in content:
+            contexto += f"""
+- Sección: Temas (resumen)
+{content['temas'].get('text', '')[:2000]}
+"""
+
+    # Incluir fragmentos de documentos locales si existen
+    if docs_snippets:
+        contexto += """
+
+APUNTES Y TRANSCRIPCIONES
+=========================
+"""
+        for i, sn in enumerate(docs_snippets, start=1):
+            contexto += f"""
+- Fuente {i} (resumen):
+{sn.get('snippet', '')}
+"""
+
+    return contexto
 
 @app.route("/")
 def index():
@@ -450,99 +604,191 @@ def chat():
         return jsonify({"error": "No prompt provided"}), 400
 
     try:
-        # Obtener información en tiempo real de SED Nariño
-        sed_info = get_sed_narino_info()
+        # Obtener información de AVAS-2 (general)
+        info_avas2 = get_avas2_info()
+
+        # Detectar materia a partir del prompt
+        prompt_norm = normalize_text(prompt)
+        detected_subject = None
+        for subject_key, keywords in SUBJECT_KEYWORDS.items():
+            if any(k in prompt_norm for k in keywords):
+                detected_subject = subject_key
+                break
+
+        # Obtener contenido específico de la materia si aplica (prioridad: ciencias naturales)
+        subject_data = None
+        if detected_subject:
+            subject_data = get_subject_data(detected_subject)
+        elif 'ciencias' in prompt_norm:
+            subject_data = get_subject_data('ciencias_naturales')
+
+        # Recuperar fragmentos de documentos locales (si existen)
+        docs_snippets = search_docs(prompt_norm, detected_subject, limit=2)
+
+        # Crear contexto estructurado con posible contenido específico y documentos
+        contexto_avas2 = crear_contexto_avas2(info_avas2, subject_data, docs_snippets)
         
-        # Construir contexto con la información obtenida
-        contexto_sed = ""
-        if 'error' not in sed_info:
-            contexto_sed = f"""
-            INFORMACIÓN COMPLETA SECRETARÍA DE EDUCACIÓN DE NARIÑO:
+        # Determinar si la pregunta necesita información específica
+        palabras_clave = ['ciencias', 'matemática', 'español', 'inglés', 'sociales', 
+                         'asignatura', 'materia', 'curso', 'tarea', 'actividad', 
+                         'avas', 'plataforma', 'recursos']
+        
+        es_pregunta_educativa = any(palabra in prompt.lower() for palabra in palabras_clave)
+        
+        # Crear prompt optimizado
+        if es_pregunta_educativa:
+            prompt_final = f"""
+{contexto_avas2}
 
-{formatear_informacion_completa(sed_info)}
-"""
+INSTRUCCIONES PARA EL ASISTENTE:
+================================
+Eres "Profe Alex", explicas a niños y niñas de primaria.
 
-        else:
-            contexto_sed = "⚠️ No se pudo acceder a la información oficial en este momento."
-
-        # Preparar prompt con contexto
-        prompt_final = f"""
-{contexto_sed}
-
-POR FAVOR RESPONDE BASÁNDOTE EN LA INFORMACIÓN OFICIAL PROPORCIONADA.
+REGLAS IMPORTANTES:
+1. Responde SOLO sobre temas educativos.
+2. No menciones nombres de plataformas, evita la palabra AVAS-2.
+3. Si preguntan por una asignatura, proporciona:
+   - Nombre exacto
+   - Descripción breve de los contenidos
+   - Una mini-actividad o ejemplo sencillo
+4. Mantén un tono infantil, claro y motivador
+5. Si no tienes información específica, dilo con amabilidad y sugiere una idea para explorar
 
 PREGUNTA DEL USUARIO: {prompt}
 
-INSTRUCCIONES:
-- Responde específicamente sobre educación en Nariño
-- Si la información no está en el contexto, dilo claramente
-- Sé preciso y utiliza información oficial
-- Mantén un tono profesional y educativo
+RESPUESTA (Sé específico y útil):
 """
-        
-        # Obtener respuesta de Ollama
+        else:
+            # Para preguntas generales
+            prompt_final = f"""
+{contexto_avas2}
+
+Eres "Profe Alex", un profe amable para niños y niñas.
+
+La pregunta del usuario no parece estar relacionada con temas educativos.
+Por favor, redirige amablemente la conversación hacia temas educativos y explica de forma simple qué temas puedes ayudar a aprender.
+
+PREGUNTA DEL USUARIO: {prompt}
+
+RESPUESTA BREVE Y AMABLE:
+"""
+
+        # Configuración mejorada para Llama3
         payload = {
             "model": "llama3",
             "prompt": prompt_final,
-            "stream": False
+            "stream": False,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "max_tokens": 700,
+            "system": "Eres 'Profe Alex', un asistente que enseña a niños y niñas con lenguaje sencillo, sin mencionar plataformas ni marcas."
         }
-        
+
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
-        
+
         if response.status_code != 200:
-            return jsonify({"error": "Ollama API request failed", "details": response.text}), 500
+            logger.error(f"Error en Ollama API: {response.status_code}")
+            return jsonify({"error": "Error en el servicio de IA"}), 500
 
         ollama_data = response.json()
         response_text = ollama_data.get("response", "")
         
-        return jsonify({
+        # Agregar información adicional si es relevante
+        metadata = {
             "response": response_text,
             "context_used": True,
-            "source": "https://sed.narino.gov.co/"
-        })
-    
+            "source": AVAS2_URL,
+            "asignaturas_disponibles": len(info_avas2.get('asignaturas', [])) if info_avas2 else 5,
+            "subject": subject_data.get('subject') if subject_data else None,
+            "subject_cards": list(subject_data.get('cards', {}).keys()) if subject_data else [],
+            "docs_used": len(docs_snippets)
+        }
+
+        return jsonify(metadata)
+
     except Exception as e:
+        logger.error(f"Error en chat endpoint: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/scrape/refresh", methods=["POST"])
 def refresh_scrape():
     """Forzar actualización del scraping"""
     SCRAPED_CACHE.clear()
-    result = scrape_sed_narino()
+    result = scrape_avas2_real()
+    success = 'error' not in result or (result.get('asignaturas') and len(result['asignaturas']) > 0)
+    
     return jsonify({
-        "success": 'error' not in result,
-        "message": "Información actualizada" if 'error' not in result else "Error al actualizar"
+        "success": success,
+        "message": "Información actualizada correctamente" if success else "Error al actualizar",
+        "asignaturas_encontradas": len(result.get('asignaturas', [])) if 'asignaturas' in result else 0
+    })
+
+@app.route("/scrape/subject/<subject>", methods=["POST"])
+def refresh_subject(subject):
+    """Forzar scraping de una materia específica (por ejemplo: ciencias_naturales)"""
+    data = scrape_subject(subject)
+    return jsonify({
+        "subject": subject,
+        "module_url": data.get('module_url'),
+        "cards": data.get('cards', {}),
+        "content_sections": list(data.get('content', {}).keys()),
+        "ok": bool(data)
+    })
+
+@app.route("/scrape/data", methods=["GET"])
+def get_scraped_data():
+    """Obtener datos scrapeados por materia para depuración"""
+    subject = request.args.get('subject', 'ciencias_naturales')
+    data = get_subject_data(subject)
+    # No devolver texto completo para no sobrecargar
+    preview = {}
+    if data and 'content' in data:
+        for k, v in data['content'].items():
+            preview[k] = {
+                'url': v.get('url'),
+                'text_preview': (v.get('text', '')[:500] + ('...' if len(v.get('text', '')) > 500 else ''))
+            }
+    return jsonify({
+        'subject': subject,
+        'module_url': data.get('module_url') if data else None,
+        'cards': data.get('cards', {}) if data else {},
+        'content_preview': preview
     })
 
 @app.route("/scrape/status", methods=["GET"])
 def scrape_status():
     """Obtener estado del scraping"""
-    cached = SCRAPED_CACHE.get('sed_narino')
-    return jsonify({
-        "cached": cached is not None,
-        "age_seconds": time.time() - cached['timestamp'] if cached else 0,
-        "source": SED_NARINO_URL
-    })
+    cached = SCRAPED_CACHE.get('avas2')
+    if cached:
+        return jsonify({
+            "cached": True,
+            "age_seconds": time.time() - cached['timestamp'],
+            "source": AVAS2_URL,
+            "asignaturas": len(cached['data'].get('asignaturas', [])),
+            "last_update": time.strftime('%Y-%m-%d %H:%M:%S', 
+                                        time.localtime(cached['timestamp']))
+        })
+    else:
+        return jsonify({
+            "cached": False,
+            "source": AVAS2_URL
+        })
 
+# Mantener las funciones de TTS existentes
 async def generate_speech_async(text, voice_name):
     """Generar audio de forma asíncrona"""
     try:
-        # Crear el comunicador de edge-tts
         communicate = edge_tts.Communicate(text, voice_name)
         
-        # Crear archivo temporal
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
             tmp_filename = tmp_file.name
         
-        # Guardar el audio
         await communicate.save(tmp_filename)
         
-        # Leer el archivo y convertir a base64
         with open(tmp_filename, 'rb') as audio_file:
             audio_data = audio_file.read()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # Eliminar archivo temporal
         try:
             os.unlink(tmp_filename)
         except:
@@ -550,12 +796,12 @@ async def generate_speech_async(text, voice_name):
         
         return audio_base64
     except Exception as e:
-        print(f"Error generando audio: {e}")
+        logger.error(f"Error generando audio: {e}")
         raise e
 
 @app.route("/tts", methods=["POST"])
 def text_to_speech():
-    """Endpoint síncrono para generar audio con Edge TTS"""
+    """Endpoint para generar audio con Edge TTS"""
     data = request.get_json()
     text = data.get("text", "")
     voice = data.get("voice", "helena")
@@ -564,13 +810,9 @@ def text_to_speech():
         return jsonify({"error": "No text provided"}), 400
     
     try:
-        # Obtener el nombre completo de la voz
         voice_name = EDGE_VOICES_ES.get(voice, EDGE_VOICES_ES['helena'])
+        logger.info(f"Generando audio con voz: {voice_name}")
         
-        print(f"Generando audio con voz: {voice_name}")
-        print(f"Texto: {text[:50]}...")
-        
-        # Ejecutar la generación de audio de forma asíncrona
         audio_base64 = run_async(generate_speech_async(text, voice_name))
         
         return jsonify({
@@ -579,108 +821,56 @@ def text_to_speech():
         })
         
     except Exception as e:
-        print(f"Error en TTS: {e}")
+        logger.error(f"Error en TTS: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/voices", methods=["GET"])
 def get_voices():
     """Obtener lista de voces disponibles"""
-    try:
-        # Devolver las voces preconfiguradas
-        voices_list = []
-        for key, voice_id in EDGE_VOICES_ES.items():
-            # Extraer información de la voz
-            parts = voice_id.split('-')
-            locale = f"{parts[0]}-{parts[1]}"
-            name = parts[2].replace('Neural', '')
-            
-            country_map = {
-                'es-ES': 'España',
-                'es-MX': 'México',
-                'es-AR': 'Argentina',
-                'es-CO': 'Colombia',
-                'es-CL': 'Chile'
-            }
-            
-            gender_map = {
-                'Helena': 'Femenino',
-                'Alvaro': 'Masculino',
-                'Elvira': 'Femenino',
-                'Dalia': 'Femenino',
-                'Jorge': 'Masculino',
-                'Larissa': 'Femenino',
-                'Elena': 'Femenino',
-                'Tomas': 'Masculino',
-                'Salome': 'Femenino',
-                'Gonzalo': 'Masculino'
-            }
-            
-            voices_list.append({
-                "id": key,
-                "name": name,
-                "voice_id": voice_id,
-                "locale": locale,
-                "country": country_map.get(locale, locale),
-                "gender": gender_map.get(name, 'Desconocido')
-            })
+    voices_list = []
+    for key, voice_id in EDGE_VOICES_ES.items():
+        parts = voice_id.split('-')
+        locale = f"{parts[0]}-{parts[1]}"
+        name = parts[2].replace('Neural', '')
         
-        return jsonify({
-            "voices": voices_list,
-            "presets": EDGE_VOICES_ES,
-            "enabled": True
-        })
+        country_map = {
+            'es-ES': 'España',
+            'es-MX': 'México',
+            'es-AR': 'Argentina',
+            'es-CO': 'Colombia'
+        }
         
-    except Exception as e:
-        print(f"Error obteniendo voces: {e}")
-        return jsonify({
-            "voices": [],
-            "presets": EDGE_VOICES_ES,
-            "enabled": False,
-            "error": str(e)
+        voices_list.append({
+            "id": key,
+            "name": name,
+            "voice_id": voice_id,
+            "locale": locale,
+            "country": country_map.get(locale, locale)
         })
-
-@app.route("/test", methods=["GET"])
-def test_edge_tts():
-    """Endpoint de prueba para verificar Edge TTS"""
-    try:
-        # Prueba simple
-        test_text = "Hola, esta es una prueba de Edge TTS"
-        audio_base64 = run_async(generate_speech_async(test_text, 'es-ES-HelenaNeural'))
-        
-        return jsonify({
-            "status": "success",
-            "message": "Edge TTS funcionando correctamente",
-            "audio_length": len(audio_base64)
-        })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        })
+    
+    return jsonify({
+        "voices": voices_list,
+        "enabled": True
+    })
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🎙️ Servidor con Edge TTS (Voces Microsoft) iniciado")
+    print("🎓 Asistente AVAS-2 con Scraping Mejorado")
     print("=" * 60)
-    print("✅ Voces naturales de Microsoft disponibles GRATIS")
-    print("\n📢 Voces disponibles:")
-    for key, value in EDGE_VOICES_ES.items():
-        print(f"   - {key}: {value}")
+    print("✅ Sistema iniciado correctamente")
+    print("📚 Plataforma: AVAS-2 - Secretaría de Educación de Nariño")
+    print("🌐 URL Base: https://investic.narino.gov.co/avas-2/")
+    print("\n📖 Asignaturas disponibles:")
+    for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
+        print(f"   - {asig['nombre']}")
     print("\n🔧 Endpoints disponibles:")
     print("   - GET  /         : Interfaz web")
     print("   - POST /chat     : Chat con Llama3")
     print("   - POST /tts      : Generar audio")
     print("   - GET  /voices   : Lista de voces")
-    print("   - GET  /test     : Probar Edge TTS")
+    print("   - POST /scrape/refresh : Actualizar información")
+    print("   - GET  /scrape/status  : Estado del scraping")
     print("\n🌐 Abre en tu navegador: http://localhost:5000")
     print("=" * 60)
-    
-    # Verificar Edge TTS
-    try:
-        import edge_tts
-        print("✅ Edge TTS instalado correctamente")
-    except ImportError:
-        print("❌ Edge TTS no está instalado")
-        print("   Ejecuta: pip install edge-tts")
     
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
