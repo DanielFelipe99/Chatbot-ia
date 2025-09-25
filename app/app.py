@@ -28,10 +28,36 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 CORS(app)
+#200.7.106.68:956 ollama 
+IS_SERVER = os.getenv('IS_SERVER','false').lower() == 'true'
+SERVER_IP = os.getenv('SERVER_IP','200.7.106.68')
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+if IS_SERVER:
+    DEFAULT_OLLAMA_API_URL = "http://200.7.106.68:956/api/generate"
+else:
+    DEFAULT_OLLAMA_API_URL = "http://localhost:11434/api/generate"
+
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", DEFAULT_OLLAMA_API_URL)
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+
+
+try:
+    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
+except ValueError:
+    OLLAMA_TIMEOUT = 300
+try:
+    OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "300"))
+except ValueError:
+    OLLAMA_MAX_TOKENS = 300
 AVAS2_URL = "https://investic.narino.gov.co/avas-2/"
 
+logger.info(f"🔧 Configuración de conexión:")
+logger.info(f"   - IS_SERVER: {IS_SERVER}")
+logger.info(f"   - SERVER_IP: {SERVER_IP}")
+logger.info(f"   - OLLAMA_API_URL: {OLLAMA_API_URL}")
+logger.info(f"   - OLLAMA_MODEL: {OLLAMA_MODEL}")
+
+#955 front - 956 Ollama
 # Voces de Microsoft Edge
 EDGE_VOICES_ES = {
     'helena': 'es-ES-HelenaNeural',
@@ -53,23 +79,28 @@ CACHE_TIMEOUT = 3600  # 1 hora
 # Claves de materias y palabras clave
 SUBJECT_KEYWORDS = {
     'ciencias_naturales': [
-        'ciencias naturales', 'naturales', 'ciencia', 'biologia', 'biología',
-        'seres vivos', 'ecosistema', 'ciclo del agua', 'agua', 'sol'
+        'ciencias naturales', 'naturales', 'ciencia', 'biologia', 'manejo del agua',
+        'el agua', 'ciclo del agua', 'sol como fuente de energia', 'agua', 'sol', 'entorno'
     ],
     'ciencias_sociales': [
-        'ciencias sociales', 'sociales', 'historia', 'geografía', 'democracia',
-        'cultura', 'sociedad'
+        'ciencias sociales', 'identidad cultural', 'cultura', 'diversidad', 'el conflicto',
+        'organizaciones sociales', 'la familia', 'escuela', 'barrio', 'la convivencia',
+        'manual de convivencia', 'derechos y deberes', 'sociedad'
     ],
     'matematicas': [
-        'matemáticas', 'matematicas', 'aritmética', 'aritmetica', 'álgebra', 'algebra',
-        'geometría', 'geometria', 'estadística', 'estadistica', 'cálculo', 'calculo'
+        'matemáticas', 'reciclaje', 'administracion de tienda', 'algebra', 'pensamiento numerico',
+        'pensamiento metrico', 'pensamiento geometrico', 'pensamiento aleatorio', 'estadistica', 'calculo'
     ],
     'espanol': [
-        'español', 'espanol', 'gramática', 'gramatica', 'literatura', 'lectura',
+        'español', 'los textos', 'la narracion', 'la anecdota', 'la receta', 'elaboracion de textos informativos',
+        'literatura', 'la fabula', 'el cuento y poemas', 'los mitos y leyendas', 'las coplas, retahila y cancion',
+        'el periodico', 'la noticia', 'el telefono', 'la carta', 'medios de comunicacion'
         'comprensión lectora', 'comprension lectora', 'escritura', 'ortografía', 'ortografia'
     ],
     'ingles': [
-        'inglés', 'ingles', 'grammar', 'vocabulary', 'reading', 'writing', 'speaking'
+        'ingles', 'whats your name?', 'the alphabet', 'greetings', 'the colors', 'the family', 'the numbers',
+        'domestic and wild animals', 'the body', 'objects of my house', 'school supplies', 'geometric figures',
+        'fruits and vegetables'
     ]
 }
 
@@ -88,8 +119,19 @@ CARD_KEYWORDS = {
 # Overrides manuales de tarjetas por materia (URLs conocidas/proporcionadas)
 SUBJECT_CARD_OVERRIDES = {
     'ciencias_naturales': {
-        'mi_curso': 'https://testsed.narino.gov.co/Naturales/sistema/descripcion.php'
-        # 'temas': 'URL_SI_EXISTE'  # Podemos añadirla cuando esté disponible
+        'mi_curso': 'https://testsed.narino.gov.co/Naturales/sistema/descripcion.php'   
+    },
+    'ciencias_sociales': {
+        'mi_curso': 'https://testsed.narino.gov.co/Sociales/sistema/descripcion.php'
+    },
+    'matematicas': {
+        'mi_curso': 'https://testsed.narino.gov.co/Matematicas/sistema/descripcion.php'
+    },
+    'espanol': {
+        'mi_curso': 'https://testsed.narino.gov.co/Espanol/sistema/descripcion.php'
+    },
+    'ingles': {
+        'mi_curso': 'https://testsed.narino.gov.co/Ingles/sistema/descripcion.php'
     }
 }
 
@@ -155,8 +197,27 @@ loop = None
 thread = None
 
 # Directorio de documentos locales (transcripciones, guías, etc.)
-BASE_DIR = Path(__file__).resolve().parent.parent
-DOCS_DIR = str(BASE_DIR / 'docs')
+# Permitir configurar por variable de entorno y detectar rutas comunes en Docker/local
+BASE_DIR = Path(__file__).resolve().parent
+_docs_dir_env = os.getenv('DOCS_DIR')
+if _docs_dir_env and os.path.isdir(_docs_dir_env):
+    DOCS_DIR = _docs_dir_env
+else:
+    _candidates = [
+        Path(__file__).resolve().parent.parent / 'docs',  # raíz del proyecto (ejecución local)
+        Path(__file__).resolve().parent / 'docs',          # /app/docs (Docker con volumen)
+        Path('/app/docs'),
+        Path('/docs'),
+    ]
+    _found = None
+    for p in _candidates:
+        try:
+            if p.is_dir():
+                _found = p
+                break
+        except Exception:
+            pass
+    DOCS_DIR = str(_found or (_candidates[0]))
 DOCS_CACHE = {
     'timestamp': 0,
     'docs': []  # lista de {path, text, subject}
@@ -673,18 +734,18 @@ PREGUNTA DEL USUARIO: {prompt}
 RESPUESTA BREVE Y AMABLE:
 """
 
-        # Configuración mejorada para Llama3
+        # Configuración mejorada para Llama3 (parametrizable por entorno)
         payload = {
-            "model": "llama3",
+            "model": OLLAMA_MODEL,
             "prompt": prompt_final,
             "stream": False,
             "temperature": 0.7,
             "top_p": 0.9,
-            "max_tokens": 700,
+            "max_tokens": OLLAMA_MAX_TOKENS,
             "system": "Eres 'Profe Alex', un asistente que enseña a niños y niñas con lenguaje sencillo, sin mencionar plataformas ni marcas."
         }
 
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=OLLAMA_TIMEOUT)
 
         if response.status_code != 200:
             logger.error(f"Error en Ollama API: {response.status_code}")

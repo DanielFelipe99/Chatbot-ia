@@ -33,5 +33,10 @@ EXPOSE 11434
 ENV FLASK_ENV=production
 ENV OLLAMA_HOST=0.0.0.0
 
-# Comando para iniciar la aplicación
-CMD sh -c "ollama serve & python app.py"
+# Comando para iniciar la aplicación (precalentar modelo si está definido)
+CMD sh -c "ollama serve & \
+  if [ -n \"$OLLAMA_MODEL\" ]; then \
+    echo 'Pre-cargando modelo' $OLLAMA_MODEL '...' && \
+    ollama pull $OLLAMA_MODEL || true; \
+  fi; \
+  python app.py"

@@ -2,14 +2,20 @@ services:
   chatbot-ia:
     build: .
     ports:
-      - "5000:5000"
-      - "11434:11434"
+      - "955:5000" ## front
+      - "956:11434" ## ollama
     volumes:
       - ollama_data:/root/.ollama
       - ./app:/app
+      - ./docs:/app/docs
     environment:
       - FLASK_ENV=production
       - OLLAMA_HOST=0.0.0.0
+      - IS_SERVER=true
+      - SERVER_IP=200.7.106.68
+      - OLLAMA_URL=http://200.7.106.68:956
+      - OLLAMA_MODEL=llama3
+      - DOCS_DIR=/app/docs
     restart: unless-stopped
     deploy:
       resources:

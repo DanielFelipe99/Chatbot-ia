@@ -1,4 +1,4 @@
-async function sendMessage() {
+/*async function sendMessage() {
     let input = document.getElementById("userInput");
     let message = input.value;
     if (!message) return;
@@ -16,4 +16,4 @@ async function sendMessage() {
 
     let data = await res.json();
     document.getElementById("messages").innerHTML += `<p><b>Bot:</b> ${data.response}</p>`;
-}
+}*/
