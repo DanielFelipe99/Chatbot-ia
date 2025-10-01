@@ -1,0 +1,22 @@
+2025-09-29 16:09:38,303 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-09-29 16:09:38,307 INFO supervisord started with pid 1
+2025-09-29 16:09:39,316 INFO spawned: 'flask' with pid 7
+2025-09-29 16:09:39,320 INFO spawned: 'ollama' with pid 8
+2025-09-29 16:09:39,326 INFO spawned: 'ollama-pull' with pid 9
+2025-09-29 16:09:39,330 INFO spawned: 'php-api' with pid 11
+2025-09-29 16:09:39,439 INFO success: ollama-pull entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-09-29 16:09:40,501 INFO success: flask entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 16:09:40,501 INFO success: ollama entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 16:09:40,502 INFO success: php-api entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 16:09:50,255 INFO exited: ollama-pull (exit status 0; expected)
+2025-09-29 19:13:10,518 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-09-29 19:13:10,529 INFO supervisord started with pid 1
+2025-09-29 19:13:11,546 INFO spawned: 'flask' with pid 8
+2025-09-29 19:13:11,561 INFO spawned: 'ollama' with pid 9
+2025-09-29 19:13:11,579 INFO spawned: 'ollama-pull' with pid 10
+2025-09-29 19:13:11,596 INFO spawned: 'php-api' with pid 12
+2025-09-29 19:13:11,841 INFO success: ollama-pull entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-09-29 19:13:13,022 INFO success: flask entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 19:13:13,024 INFO success: ollama entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 19:13:13,025 INFO success: php-api entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-29 19:13:22,598 INFO exited: ollama-pull (exit status 0; expected)

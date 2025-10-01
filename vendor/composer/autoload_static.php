@@ -18,6 +18,10 @@ class ComposerStaticInit82cbb6d5c507d90bafecae548b5f7c21
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
         ),
+        'O' => 
+        array (
+            'OllamaIAService\\' => 16,
+        ),
         'G' => 
         array (
             'GuzzleHttp\\Psr7\\' => 16,
@@ -39,6 +43,10 @@ class ComposerStaticInit82cbb6d5c507d90bafecae548b5f7c21
         'Psr\\Http\\Client\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-client/src',
+        ),
+        'OllamaIAService\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/app/static',
         ),
         'GuzzleHttp\\Psr7\\' => 
         array (

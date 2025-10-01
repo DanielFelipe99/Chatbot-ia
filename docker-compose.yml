@@ -2,21 +2,36 @@ services:
   chatbot-ia:
     build: .
     ports:
-      - "955:5000" ## front
-      - "956:11434" ## ollama
+      - "955:5000"  # Flask - Único puerto expuesto
     volumes:
       - ollama_data:/root/.ollama
-      - ./app:/app
+      - ./app:/app/app
       - ./docs:/app/docs
+      - ./logs:/var/log/chatbot
+      - ./vendor:/app/vendor  # Para dependencias PHP
     environment:
+      # Configuración de Flask
       - FLASK_ENV=production
-      - OLLAMA_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      
+      # URLs internas (dentro del contenedor)
+      - PHP_API_URL=http://localhost:8080/api.php
+      - OLLAMA_URL=http://localhost:11434
+      
+      # Configuración del servidor
       - IS_SERVER=true
       - SERVER_IP=200.7.106.68
-      - OLLAMA_URL=http://200.7.106.68:956
+      - PUBLIC_URL=http://200.7.106.68:955
+      
+      # Modelo
       - OLLAMA_MODEL=llama3
+      - OLLAMA_HOST=0.0.0.0
+      
+      # Directorios
       - DOCS_DIR=/app/docs
     restart: unless-stopped
+    networks:
+      - chatbot-network
     deploy:
       resources:
         limits:
@@ -26,3 +41,7 @@ services:
 
 volumes:
   ollama_data:
+  
+networks:
+  chatbot-network:
+    driver: bridge

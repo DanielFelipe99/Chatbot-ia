@@ -1,0 +1,125 @@
+[Fri Sep 26 09:20:21 2025] PHP 8.3.19 Development Server (http://localhost:8000) started
+[Fri Sep 26 09:20:38 2025] [::1]:55602 Accepted
+[Fri Sep 26 09:20:38 2025] [::1]:55602 Closing
+[Fri Sep 26 09:20:38 2025] [::1]:60282 Accepted
+[Fri Sep 26 09:20:39 2025] [::1]:60282 Closing
+[Fri Sep 26 09:31:48 2025] [::1]:58064 Accepted
+[Fri Sep 26 09:31:48 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:31:48 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:31:48 2025] [::1]:58064 Closing
+[Fri Sep 26 09:31:48 2025] [::1]:54486 Accepted
+[Fri Sep 26 09:31:48 2025] [::1]:51084 Accepted
+[Fri Sep 26 09:31:50 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:31:50 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:31:50 2025] [::1]:54486 Closing
+[Fri Sep 26 09:32:14 2025] [::1]:62929 Accepted
+[Fri Sep 26 09:32:14 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:14 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:14 2025] [::1]:51084 Closing
+[Fri Sep 26 09:32:14 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:14 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:14 2025] [::1]:62929 Closing
+[Fri Sep 26 09:32:15 2025] [::1]:54402 Accepted
+[Fri Sep 26 09:32:15 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:15 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:15 2025] [::1]:54402 Closing
+[Fri Sep 26 09:32:15 2025] [::1]:53411 Accepted
+[Fri Sep 26 09:32:15 2025] [::1]:52228 Accepted
+[Fri Sep 26 09:32:15 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:15 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:15 2025] [::1]:53411 Closing
+[Fri Sep 26 09:32:17 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] [::1]:52228 Closing
+[Fri Sep 26 09:32:17 2025] [::1]:57900 Accepted
+[Fri Sep 26 09:32:17 2025] [::1]:52991 Accepted
+[Fri Sep 26 09:32:17 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] [::1]:57900 Closing
+[Fri Sep 26 09:32:17 2025] [::1]:62507 Accepted
+[Fri Sep 26 09:32:17 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:17 2025] [::1]:52991 Closing
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:62507 Closing
+[Fri Sep 26 09:32:18 2025] [::1]:55900 Accepted
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:55900 Closing
+[Fri Sep 26 09:32:18 2025] [::1]:52327 Accepted
+[Fri Sep 26 09:32:18 2025] [::1]:58755 Accepted
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:52327 Closing
+[Fri Sep 26 09:32:18 2025] [::1]:57571 Accepted
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:58755 Closing
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:57571 Closing
+[Fri Sep 26 09:32:18 2025] [::1]:52858 Accepted
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:52858 Closing
+[Fri Sep 26 09:32:18 2025] [::1]:64049 Accepted
+[Fri Sep 26 09:32:18 2025] [::1]:53431 Accepted
+[Fri Sep 26 09:32:18 2025] PHP Warning:  require(C:\chatbot_proyecto\app/vendor/autoload.php): Failed to open stream: No such file or directory in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\chatbot_proyecto\app/vendor/autoload.php' (include_path='.;C:\php\pear') in C:\chatbot_proyecto\app\api.php:3
+Stack trace:
+#0 {main}
+  thrown in C:\chatbot_proyecto\app\api.php on line 3
+[Fri Sep 26 09:32:18 2025] [::1]:64049 Closing
+[Fri Sep 26 09:33:16 2025] [::1]:53431 Closing
+[Fri Sep 26 09:33:16 2025] [::1]:64713 Accepted
+[Fri Sep 26 09:33:16 2025] [::1]:64713 Closing
+[Fri Sep 26 09:38:25 2025] [::1]:49768 Accepted
+[Fri Sep 26 09:38:27 2025] Recibido prompt: hola
+[Fri Sep 26 09:39:49 2025] PHP Fatal error:  Maximum execution time of 30 seconds exceeded in C:\chatbot_proyecto\vendor\guzzlehttp\guzzle\src\Handler\CurlFactory.php on line 695
+[Fri Sep 26 09:39:49 2025] [::1]:49768 Closing

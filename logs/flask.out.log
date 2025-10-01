@@ -1,0 +1,52 @@
+============================================================
+🎓 Asistente AVAS-2 con Scraping Mejorado
+============================================================
+✅ Sistema iniciado correctamente
+📚 Plataforma: AVAS-2 - Secretaría de Educación de Nariño
+🌐 URL Base: https://investic.narino.gov.co/avas-2/
+
+📖 Asignaturas disponibles:
+   - Ciencias Naturales
+   - Ciencias Sociales
+   - Matemáticas
+   - Español
+   - Inglés
+
+🔧 Endpoints disponibles:
+   - GET  /         : Interfaz web
+   - POST /chat     : Chat con Llama3
+   - POST /tts      : Generar audio
+   - GET  /voices   : Lista de voces
+   - POST /scrape/refresh : Actualizar información
+   - GET  /scrape/status  : Estado del scraping
+
+🌐 Abre en tu navegador: http://localhost:5000
+============================================================
+ * Serving Flask app 'app'
+ * Debug mode: off
+============================================================
+🎓 Asistente AVAS-2 con Scraping Mejorado
+============================================================
+✅ Sistema iniciado correctamente
+📚 Plataforma: AVAS-2 - Secretaría de Educación de Nariño
+🌐 URL Base: https://investic.narino.gov.co/avas-2/
+
+📖 Asignaturas disponibles:
+   - Ciencias Naturales
+   - Ciencias Sociales
+   - Matemáticas
+   - Español
+   - Inglés
+
+🔧 Endpoints disponibles:
+   - GET  /         : Interfaz web
+   - POST /chat     : Chat con Llama3
+   - POST /tts      : Generar audio
+   - GET  /voices   : Lista de voces
+   - POST /scrape/refresh : Actualizar información
+   - GET  /scrape/status  : Estado del scraping
+
+🌐 Abre en tu navegador: http://localhost:5000
+============================================================
+ * Serving Flask app 'app'
+ * Debug mode: off

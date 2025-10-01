@@ -1,5 +1,5 @@
 flask==2.3.3 
-request==3.32.4
+requests==3.32.4
 flask_cors==4.0.0
 edge-tts==7.2.0
 beautifulsoup4==4.13.4

@@ -1,0 +1,14 @@
+INFO:__main__:\U0001f517 PHP API URL configurada: http://localhost:8000/api.php
+INFO:__main__:\U0001f527 Configuración de conexión:
+INFO:__main__:   - IS_SERVER: False
+INFO:__main__:   - SERVER_IP: 200.7.106.68
+INFO:__main__:   - OLLAMA_API_URL: http://localhost:11434/api/generate
+INFO:__main__:   - OLLAMA_MODEL: llama3
+============================================================
+Traceback (most recent call last):
+  File "C:\chatbot_proyecto\app\app.py", line 923, in <module>
+    print("\U0001f393 Asistente AVAS-2 con Scraping Mejorado")
+  File "C:\Users\danie\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f393' in position 0: character maps to <undefined>

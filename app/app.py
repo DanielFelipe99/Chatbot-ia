@@ -18,6 +18,7 @@ from pathlib import Path
 import re
 import unicodedata
 from typing import Optional
+from rag_system import RAGSystem
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +30,39 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 CORS(app)
 #200.7.106.68:956 ollama 
+
+logger.info("Iniciado app...")
+try:
+   
+    docs_path = os.path.join(os.path.dirname(__file__), "..", "docs")
+    docs_path = os.path.abspath(docs_path)
+    
+    logger.info(f"📁 Buscando documentos en: {docs_path}")
+    
+    # Verificar que existe la carpeta y tiene archivos
+    if os.path.exists(docs_path):
+        txt_files = [f for f in os.listdir(docs_path) if f.endswith('.txt')]
+        logger.info(f"📄 Archivos TXT encontrados: {txt_files}")
+    else:
+        logger.error(f"❌ No existe la carpeta: {docs_path}")
+    
+    rag = RAGSystem(docs_dir=docs_path)
+    logger.info("✅ RAGSystem iniciado correctamente")
+    
+except Exception as e:
+    logger.error(f"❌ Error al iniciar RAGSystem: {e}")
+    rag = None
+
+
 IS_SERVER = os.getenv('IS_SERVER','false').lower() == 'true'
 SERVER_IP = os.getenv('SERVER_IP','200.7.106.68')
+PUBLIC_URL = os.getenv('PUBLIC_URL','http://200.7.106.68:955')
+
+# Configuración para PHP API
+PHP_API_URL = os.getenv("PHP_API_URL", "http://localhost:8080/api.php")
+OLLAMA_API_URL = os.getenv("OLLAMA_URL", "http://localhost:11434") + "/api/generate"
+logger.info(f"🔗 PHP API URL configurada: {PHP_API_URL}")
+
 
 if IS_SERVER:
     DEFAULT_OLLAMA_API_URL = "http://200.7.106.68:956/api/generate"
@@ -655,6 +687,10 @@ def index():
 
 @app.route("/chat", methods=["POST", "OPTIONS"])
 def chat():
+    if not rag:
+        logger.warning("RAGSystem no está disponible. Usando modelo antiguo")
+        return jsonify({"error": "RAGSystem no está disponible"}), 500
+        
     if request.method == "OPTIONS":
         return '', 204
 
@@ -665,110 +701,104 @@ def chat():
         return jsonify({"error": "No prompt provided"}), 400
 
     try:
-        # Obtener información de AVAS-2 (general)
-        info_avas2 = get_avas2_info()
-
-        # Detectar materia a partir del prompt
+        # 1. NUEVO: Buscar contexto relevante con RAG
+        logger.info("🔍 Buscando contexto con sistema RAG...")
+        context_rag, sources = rag.search(prompt, n_results=2)
+        logger.info(f"✅ RAG encontró contexto de: {sources}")
+        
+        # 2. Detectar materia (se mantiene para metadata)
         prompt_norm = normalize_text(prompt)
         detected_subject = None
         for subject_key, keywords in SUBJECT_KEYWORDS.items():
             if any(k in prompt_norm for k in keywords):
                 detected_subject = subject_key
                 break
-
-        # Obtener contenido específico de la materia si aplica (prioridad: ciencias naturales)
-        subject_data = None
-        if detected_subject:
-            subject_data = get_subject_data(detected_subject)
-        elif 'ciencias' in prompt_norm:
-            subject_data = get_subject_data('ciencias_naturales')
-
-        # Recuperar fragmentos de documentos locales (si existen)
-        docs_snippets = search_docs(prompt_norm, detected_subject, limit=2)
-
-        # Crear contexto estructurado con posible contenido específico y documentos
-        contexto_avas2 = crear_contexto_avas2(info_avas2, subject_data, docs_snippets)
         
-        # Determinar si la pregunta necesita información específica
-        palabras_clave = ['ciencias', 'matemática', 'español', 'inglés', 'sociales', 
-                         'asignatura', 'materia', 'curso', 'tarea', 'actividad', 
-                         'avas', 'plataforma', 'recursos']
-        
-        es_pregunta_educativa = any(palabra in prompt.lower() for palabra in palabras_clave)
-        
-        # Crear prompt optimizado
-        if es_pregunta_educativa:
-            prompt_final = f"""
-{contexto_avas2}
+        # 3. SIMPLIFICADO: Crear contexto solo con RAG (ya no necesitamos scraping ni search_docs)
+        contexto_final = f"""
+GUÍA EDUCATIVA PARA NIÑOS
+========================
+Eres "Profe Alex", explicas con palabras sencillas.
 
-INSTRUCCIONES PARA EL ASISTENTE:
-================================
-Eres "Profe Alex", explicas a niños y niñas de primaria.
+INFORMACIÓN RELEVANTE:
+{context_rag[:1500]}  # Limitamos a 1500 caracteres
 
-REGLAS IMPORTANTES:
-1. Responde SOLO sobre temas educativos.
-2. No menciones nombres de plataformas, evita la palabra AVAS-2.
-3. Si preguntan por una asignatura, proporciona:
-   - Nombre exacto
-   - Descripción breve de los contenidos
-   - Una mini-actividad o ejemplo sencillo
-4. Mantén un tono infantil, claro y motivador
-5. Si no tienes información específica, dilo con amabilidad y sugiere una idea para explorar
-
-PREGUNTA DEL USUARIO: {prompt}
-
-RESPUESTA (Sé específico y útil):
+INSTRUCCIONES:
+- Responde de forma breve y clara
+- Usa ejemplos simples
+- Máximo 3-4 oraciones
 """
-        else:
-            # Para preguntas generales
-            prompt_final = f"""
-{contexto_avas2}
-
-Eres "Profe Alex", un profe amable para niños y niñas.
-
-La pregunta del usuario no parece estar relacionada con temas educativos.
-Por favor, redirige amablemente la conversación hacia temas educativos y explica de forma simple qué temas puedes ayudar a aprender.
-
-PREGUNTA DEL USUARIO: {prompt}
-
-RESPUESTA BREVE Y AMABLE:
-"""
-
-        # Configuración mejorada para Llama3 (parametrizable por entorno)
+        
+        # 4. Configurar para modelo rápido
+        php_api_url = os.getenv("PHP_API_URL", "http://localhost:8000/api.php")
+        
         payload = {
-            "model": OLLAMA_MODEL,
-            "prompt": prompt_final,
-            "stream": False,
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "max_tokens": OLLAMA_MAX_TOKENS,
-            "system": "Eres 'Profe Alex', un asistente que enseña a niños y niñas con lenguaje sencillo, sin mencionar plataformas ni marcas."
+            "prompt": prompt,
+            "context": contexto_final,
+            "model": "phi3:mini",  # CAMBIO: Modelo más rápido
+            "temperature": 0.5,    # CAMBIO: Más determinístico
+            "max_tokens": 150      # CAMBIO: Respuestas más cortas
         }
-
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=OLLAMA_TIMEOUT)
-
-        if response.status_code != 200:
-            logger.error(f"Error en Ollama API: {response.status_code}")
-            return jsonify({"error": "Error en el servicio de IA"}), 500
-
-        ollama_data = response.json()
-        response_text = ollama_data.get("response", "")
         
-        # Agregar información adicional si es relevante
+        logger.info(f"📤 Enviando a PHP con contexto RAG de {len(contexto_final)} caracteres")
+        
+        # 5. Petición a PHP (se mantiene igual)
+        try:
+            php_response = requests.post(
+                php_api_url, 
+                json=payload, 
+                timeout=30,  # CAMBIO: Reducido de 120 a 30 segundos
+                headers={'Content-Type': 'application/json; charset=utf-8'}
+            )
+            
+            logger.info(f"PHP Response Status: {php_response.status_code}")
+            
+            if 'text/html' in php_response.headers.get('Content-Type', ''):
+                logger.error("❌ PHP devolvió HTML en lugar de JSON")
+                return jsonify({"error": "Error en el servicio PHP"}), 500
+            
+            try:
+                php_data = php_response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"❌ Error parseando JSON: {e}")
+                return jsonify({"error": "Error parseando respuesta"}), 500
+            
+        except requests.exceptions.Timeout:
+            logger.error("⏱️ Timeout al llamar a PHP API")
+            return jsonify({"error": "Timeout en el servicio"}), 504
+        except requests.exceptions.ConnectionError:
+            logger.error("❌ No se pudo conectar con PHP API")
+            return jsonify({"error": "No se pudo conectar con el servicio"}), 503
+        
+        # 6. Verificar respuesta
+        if not php_data.get('success'):
+            logger.error(f"❌ Error desde PHP: {php_data.get('error')}")
+            return jsonify({"error": php_data.get('error', 'Error desconocido')}), 500
+        
+        response_text = php_data.get('data', {}).get('response', '')
+        
+        if not response_text:
+            logger.error("❌ Respuesta vacía")
+            return jsonify({"error": "No se recibió respuesta"}), 500
+        
+        logger.info(f"✅ Respuesta recibida: {len(response_text)} caracteres")
+        
+        # 7. Respuesta con metadata actualizada
         metadata = {
             "response": response_text,
             "context_used": True,
-            "source": AVAS2_URL,
-            "asignaturas_disponibles": len(info_avas2.get('asignaturas', [])) if info_avas2 else 5,
-            "subject": subject_data.get('subject') if subject_data else None,
-            "subject_cards": list(subject_data.get('cards', {}).keys()) if subject_data else [],
-            "docs_used": len(docs_snippets)
+            "sources": sources,  # NUEVO: Fuentes del RAG
+            "subject": detected_subject,
+            "rag_used": True,    # NUEVO: Indicador de RAG
+            "model": "phi3:mini" # NUEVO: Modelo usado
         }
 
         return jsonify(metadata)
 
     except Exception as e:
-        logger.error(f"Error en chat endpoint: {str(e)}")
+        logger.error(f"❌ Error en chat: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @app.route("/scrape/refresh", methods=["POST"])
@@ -915,6 +945,7 @@ def get_voices():
     })
 
 if __name__ == "__main__":
+    port = int(os.getenv('FLASK_PORT', 5000))
     print("=" * 60)
     print("🎓 Asistente AVAS-2 con Scraping Mejorado")
     print("=" * 60)
@@ -934,4 +965,4 @@ if __name__ == "__main__":
     print("\n🌐 Abre en tu navegador: http://localhost:5000")
     print("=" * 60)
     
-    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
+    app.run(debug=False, host='0.0.0.0', port=port, threaded=True)

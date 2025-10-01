@@ -1,0 +1,22 @@
+INFO:__main__:🔗 PHP API URL configurada: http://localhost:8080/api.php
+INFO:__main__:🔧 Configuración de conexión:
+INFO:__main__:   - IS_SERVER: True
+INFO:__main__:   - SERVER_IP: 200.7.106.68
+INFO:__main__:   - OLLAMA_API_URL: http://200.7.106.68:956/api/generate
+INFO:__main__:   - OLLAMA_MODEL: llama3
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.2:5000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:__main__:🔗 PHP API URL configurada: http://localhost:8080/api.php
+INFO:__main__:🔧 Configuración de conexión:
+INFO:__main__:   - IS_SERVER: True
+INFO:__main__:   - SERVER_IP: 200.7.106.68
+INFO:__main__:   - OLLAMA_API_URL: http://200.7.106.68:956/api/generate
+INFO:__main__:   - OLLAMA_MODEL: llama3
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.2:5000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
