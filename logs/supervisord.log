@@ -20,3 +20,43 @@
 2025-09-29 19:13:13,024 INFO success: ollama entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 2025-09-29 19:13:13,025 INFO success: php-api entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 2025-09-29 19:13:22,598 INFO exited: ollama-pull (exit status 0; expected)
+2025-10-01 02:04:00,494 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-10-01 02:04:00,497 INFO supervisord started with pid 1
+2025-10-01 02:04:01,503 INFO spawned: 'flask' with pid 7
+2025-10-01 02:04:01,507 INFO spawned: 'ollama' with pid 8
+2025-10-01 02:04:01,513 INFO spawned: 'ollama-pull' with pid 9
+2025-10-01 02:04:01,516 INFO spawned: 'php-api' with pid 10
+2025-10-01 02:04:01,637 INFO success: ollama-pull entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-10-01 02:04:02,222 WARN exited: flask (exit status 1; not expected)
+2025-10-01 02:04:03,229 INFO spawned: 'flask' with pid 21
+2025-10-01 02:04:03,229 INFO success: ollama entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-10-01 02:04:03,230 INFO success: php-api entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-10-01 02:04:03,712 WARN exited: flask (exit status 1; not expected)
+2025-10-01 02:04:05,725 INFO spawned: 'flask' with pid 22
+2025-10-01 02:04:06,204 WARN exited: flask (exit status 1; not expected)
+2025-10-01 02:04:09,213 INFO spawned: 'flask' with pid 23
+2025-10-01 02:04:09,586 WARN exited: flask (exit status 1; not expected)
+2025-10-01 02:04:10,589 INFO gave up: flask entered FATAL state, too many start retries too quickly
+2025-10-01 02:04:12,174 INFO exited: ollama-pull (exit status 0; expected)
+2025-10-01 21:27:19,108 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2025-10-01 21:27:19,113 INFO supervisord started with pid 1
+2025-10-01 21:27:20,121 INFO spawned: 'flask' with pid 7
+2025-10-01 21:27:20,125 INFO spawned: 'ollama' with pid 8
+2025-10-01 21:27:20,133 INFO spawned: 'ollama-pull' with pid 9
+2025-10-01 21:27:20,137 INFO spawned: 'php-api' with pid 10
+2025-10-01 21:27:20,283 INFO success: ollama-pull entered RUNNING state, process has stayed up for > than 0 seconds (startsecs)
+2025-10-01 21:27:20,869 WARN exited: flask (exit status 1; not expected)
+2025-10-01 21:27:21,876 INFO spawned: 'flask' with pid 21
+2025-10-01 21:27:21,877 INFO success: ollama entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-10-01 21:27:21,877 INFO success: php-api entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-10-01 21:27:22,489 WARN exited: flask (exit status 1; not expected)
+2025-10-01 21:27:24,496 INFO spawned: 'flask' with pid 22
+2025-10-01 21:27:24,951 WARN exited: flask (exit status 1; not expected)
+2025-10-01 21:27:27,960 INFO spawned: 'flask' with pid 23
+2025-10-01 21:27:28,437 WARN exited: flask (exit status 1; not expected)
+2025-10-01 21:27:29,442 INFO gave up: flask entered FATAL state, too many start retries too quickly
+2025-10-01 21:27:31,124 INFO exited: ollama-pull (exit status 0; expected)
+2025-10-01 21:35:08,678 WARN received SIGTERM indicating exit request
+2025-10-01 21:35:08,679 INFO waiting for ollama, php-api to die
+2025-10-01 21:35:09,683 WARN stopped: php-api (terminated by SIGTERM)
+2025-10-01 21:35:10,689 INFO stopped: ollama (exit status 0)

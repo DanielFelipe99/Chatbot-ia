@@ -20,3 +20,51 @@ INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a
  * Running on http://127.0.0.1:5000
  * Running on http://172.18.0.2:5000
 INFO:werkzeug:[33mPress CTRL+C to quit[0m
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'
+Traceback (most recent call last):
+  File "/app/app/app.py", line 21, in <module>
+    from rag_system import RAGSystem
+  File "/app/app/rag_system.py", line 2, in <module>
+    import chromadb
+ModuleNotFoundError: No module named 'chromadb'

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>Profe Alex - Asistente Virtual</title>
+    <title>Profe Axel - Asistente Virtual</title>
     <meta charset="utf-8">
     <style>
         /* Estilos generales */
@@ -149,6 +149,7 @@
           background: linear-gradient(135deg, #8B6F47 0%, #A68B5C 100%);
           color: white;
           align-self: flex-end;
+         
         }
         
         .bot-message {
@@ -156,13 +157,14 @@
           color: #333;
           align-self: flex-start;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-right: auto;
         }
         
         .message b {
             font-weight: 600;
         }
         
-        .speak-button {
+        #speak-button {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -183,14 +185,14 @@
             background: #f0f0f0;
         }
         
-        .speak-button:hover {
+        #speak-button:hover {
             transform: scale(1.1);
             background: rgba(255, 255, 255, 0.4);
         }
         
         .speak-button.speaking {
             animation: pulse 1.2s infinite;
-            background: #f5576c;
+            background: #f5dd57;
             color: white;
         }
         
@@ -388,7 +390,7 @@
     <!-- Contenedor del chat -->
     <div class="chat-container" id="chatContainer">
         <div class="chat-header">
-            <h3>Profe Alex - Asistente Virtual</h3>
+            <h3>Profe Axel - Asistente Virtual</h3>
             <button class="close-btn" id="closeChat">&times;</button>
         </div>
         
@@ -396,7 +398,7 @@
         
         <div class="chat-messages" id="chatMessages">
             <div class="message bot-message">
-                <b>Profe Alex:</b> ¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre Ciencias Naturales, Ciencias Sociales, Matemáticas, Español o Inglés.
+                <b>Profe Axel:</b> ¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre Ciencias Naturales, Ciencias Sociales, Matemáticas, Español o Inglés.
             </div>
         </div>
         
@@ -417,7 +419,7 @@
 
   // Variables globales
   let selectedVoice = 'gonzalo';
-  let autoSpeak = true;
+  let autoSpeak = false;
   let recognition = null;
   let isRecording = false;
   let messageCounter = 0;
@@ -650,7 +652,7 @@
         body: JSON.stringify({ prompt: message })
       });
 
-      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+      if (!response.ok) throw new Error(`El profe esta ocupado, vuelve a intentarlo: ${response.status}`);
 
       const data = await response.json();
       if (data.error) throw new Error(data.error);
@@ -679,6 +681,14 @@
 
   // Añadir mensaje al chat
   function addMessage(text, sender, id) {
+    console.log(` Mensaje ${sender}:`, {
+      id: id,
+      length: text.length,
+      preview:text.substring(0,100) + (text.length > 100 ? '...' : ''),
+      fullText:text
+    
+    });
+
     const messageElement = document.createElement('div');
     messageElement.id = id;
     messageElement.classList.add('message');
@@ -690,7 +700,7 @@
     
     messageElement.innerHTML = `
       ${speakerHtml}
-      <b>${sender === 'user' ? 'Tú' : '🤖 Profe Alex'}:</b> ${escapeHtml(text)}
+      <b>${sender === 'user' ? 'Tú' : '🤖 Profe Axel'}:</b> ${escapeHtml(text)}
     `;
     
     chatMessages.appendChild(messageElement);

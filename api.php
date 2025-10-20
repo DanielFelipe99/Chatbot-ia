@@ -31,9 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'body' => [
                 'prompt' => 'Tu pregunta aquí',
                 'context' => 'Contexto opcional',
-                'model' => 'llama3',
+                'model' => 'phi3:mini',
                 'temperature' => 0.7,
-                'max_tokens' => 300
+                'max_tokens' => 250
             ]
         ]
     ]);
@@ -72,17 +72,17 @@ class OllamaAPI {
         try {
             $prompt = $input['prompt'];
             $context = $input['context'] ?? '';
-            $model = $input['model'] ?? 'llama3';  // Acepta el modelo del request
+            $model = $input['model'] ?? 'phi3:mini';  // Acepta el modelo del request
             $temperature = $input['temperature'] ?? 0.7;
-            $maxTokens = $input['max_tokens'] ?? 300;
+            $maxTokens = $input['max_tokens'] ?? 250;
             
             error_log("Modelo solicitado: " . $model);
             error_log("Contexto recibido: " . strlen($context) . " caracteres");
             
             // Si el modelo no existe, usar fallback
             if (!$this->modelExists($model)) {
-                error_log("Modelo $model no encontrado, usando llama3");
-                $model = 'llama3';  // Fallback a llama3
+                error_log("Modelo $model no encontrado, usando phi3:mini");
+                $model = 'phi3:mini';  // Fallback a phi3:mini
             }
             
             $simplePrompt = !empty($context) ? 
@@ -110,7 +110,7 @@ class OllamaAPI {
     
     private function modelExists($model) {
         // Verificar si el modelo existe
-        $models = ['llama3', 'phi3:mini', 'llama3.2:1b'];
+        $models = ['phi3:mini', 'llama3.2:1b', 'llama3:latest', 'qwen2.5:0.5b'];
         return in_array($model, $models);
     }
     

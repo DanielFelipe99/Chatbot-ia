@@ -17,6 +17,7 @@ import glob
 from pathlib import Path
 import re
 import unicodedata
+from collections import OrderedDict
 from typing import Optional
 from rag_system import RAGSystem
 
@@ -29,68 +30,157 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 CORS(app)
-#200.7.106.68:956 ollama 
 
-logger.info("Iniciado app...")
-try:
-   
-    docs_path = os.path.join(os.path.dirname(__file__), "..", "docs")
-    docs_path = os.path.abspath(docs_path)
-    
-    logger.info(f"📁 Buscando documentos en: {docs_path}")
-    
-    # Verificar que existe la carpeta y tiene archivos
-    if os.path.exists(docs_path):
-        txt_files = [f for f in os.listdir(docs_path) if f.endswith('.txt')]
-        logger.info(f"📄 Archivos TXT encontrados: {txt_files}")
-    else:
-        logger.error(f"❌ No existe la carpeta: {docs_path}")
-    
-    rag = RAGSystem(docs_dir=docs_path)
-    logger.info("✅ RAGSystem iniciado correctamente")
-    
-except Exception as e:
-    logger.error(f"❌ Error al iniciar RAGSystem: {e}")
-    rag = None
+# Cache simple en memoria para respuestas recientes
+MAX_CACHE_ITEMS = 25
+response_cache = OrderedDict()
+QUICK_REPLIES = {
+    "hola": "¡Hola! Soy el profe Axel. ¿Qué te gustaría aprender hoy?",
+    "buenos dias": "¡Buenos días! Cuéntame qué tema quieres repasar.",
+    "buenas tardes": "¡Buenas tardes! ¿Listo para aprender algo nuevo?",
+    "gracias": "¡Con gusto! Si necesitas otra explicación, solo dime.",
+    "como estas": "¡Muy bien y con ganas de ayudarte a aprender! ¿Cuál es tu pregunta?"
+}
 
 
-IS_SERVER = os.getenv('IS_SERVER','false').lower() == 'true'
-SERVER_IP = os.getenv('SERVER_IP','200.7.106.68')
-PUBLIC_URL = os.getenv('PUBLIC_URL','http://200.7.106.68:955')
+def cache_chat_response(cache_key: str, payload: dict) -> None:
+    if not cache_key:
+        return
+    response_cache[cache_key] = payload
+    response_cache.move_to_end(cache_key)
+    while len(response_cache) > MAX_CACHE_ITEMS:
+        response_cache.popitem(last=False)
 
-# Configuración para PHP API
-PHP_API_URL = os.getenv("PHP_API_URL", "http://localhost:8080/api.php")
-OLLAMA_API_URL = os.getenv("OLLAMA_URL", "http://localhost:11434") + "/api/generate"
-logger.info(f"🔗 PHP API URL configurada: {PHP_API_URL}")
 
+def get_cached_chat_response(cache_key: str):
+    if not cache_key:
+        return None
+    cached = response_cache.get(cache_key)
+    if cached:
+        response_cache.move_to_end(cache_key)
+    return cached
 
+# ============ CONFIGURACIÃ“N CORREGIDA ============
+# Determinar entorno
+IS_SERVER = os.getenv('IS_SERVER', 'false').lower() == 'true'
+SERVER_IP = os.getenv('SERVER_IP', '200.7.106.68')
+
+# ConfiguraciÃ³n de URLs segÃºn entorno
 if IS_SERVER:
-    DEFAULT_OLLAMA_API_URL = "http://200.7.106.68:956/api/generate"
+    # En producciÃ³n/Docker
+    PHP_API_URL = os.getenv("PHP_API_URL", "http://localhost:8000/api.php")  # Puerto correcto: 8000
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")  # Ollama en el host
+    PUBLIC_URL = f"http://{SERVER_IP}:955"
 else:
-    DEFAULT_OLLAMA_API_URL = "http://localhost:11434/api/generate"
+    # En desarrollo local
+    PHP_API_URL = os.getenv("PHP_API_URL", "http://localhost:8000/api.php")
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    PUBLIC_URL = "http://localhost:5000"
 
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", DEFAULT_OLLAMA_API_URL)
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+# Modelo y configuración de Ollama
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")  # Usar modelo rápido
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "30"))  # Reducido a 30s
+OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "350"))  # Respuestas más cortas
 
-
-try:
-    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
-except ValueError:
-    OLLAMA_TIMEOUT = 300
-try:
-    OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", "300"))
-except ValueError:
-    OLLAMA_MAX_TOKENS = 300
+# URL de AVAS-2
 AVAS2_URL = "https://investic.narino.gov.co/avas-2/"
 
-logger.info(f"🔧 Configuración de conexión:")
-logger.info(f"   - IS_SERVER: {IS_SERVER}")
-logger.info(f"   - SERVER_IP: {SERVER_IP}")
-logger.info(f"   - OLLAMA_API_URL: {OLLAMA_API_URL}")
-logger.info(f"   - OLLAMA_MODEL: {OLLAMA_MODEL}")
+# Logging de configuración
+logger.info("=" * 50)
+logger.info("CONFIGURACIÓN DEL SISTEMA:")
+logger.info(f"   - Entorno: {'SERVIDOR' if IS_SERVER else 'LOCAL'}")
+logger.info(f"   - PHP API: {PHP_API_URL}")
+logger.info(f"   - Ollama: {OLLAMA_URL}")
+logger.info(f"   - Modelo: {OLLAMA_MODEL}")
+logger.info(f"   - URL Publica: {PUBLIC_URL}")
+logger.info("=" * 50)
 
-#955 front - 956 Ollama
-# Voces de Microsoft Edge
+# ============ INICIALIZAR RAG ============
+logger.info("Inicializando sistema RAG...")
+try:
+    # Determinar ruta de documentos segÃºn entorno
+    if IS_SERVER:
+        docs_path = "/app/docs"
+    else:
+        # LOCAL: desde app/app.py, subir un nivel a la rai­z del proyecto
+        current_file = os.path.abspath(__file__)  # /ruta/proyecto/app/app.py
+        app_dir = os.path.dirname(current_file)   # /ruta/proyecto/app
+        project_root = os.path.dirname(app_dir)   # /ruta/proyecto
+        docs_path = os.path.join(project_root, "docs")  # /ruta/proyecto/docs
+    
+    docs_path = os.path.abspath(docs_path)
+    
+    logger.info("=" * 60)
+    logger.info("VERIFICANDO DOCUMENTOS:")
+    logger.info(f"   Archivo actual: {os.path.abspath(__file__)}")
+    logger.info(f"   Directorio app: {os.path.dirname(os.path.abspath(__file__))}")
+    logger.info(f"   Ruta docs calculada: {docs_path}")
+    logger.info(f"   ¿Existe la ruta? {os.path.exists(docs_path)}")
+    
+    if os.path.exists(docs_path):
+        # Listar contenido
+        all_files = os.listdir(docs_path)
+        txt_files = [f for f in all_files if f.endswith('.txt')]
+        
+        logger.info(f"   Todos los archivos: {all_files}")
+        logger.info(f"   Archivos .txt: {txt_files}")
+        
+        if not txt_files:
+            logger.error("No hay archivos TXT en la carpeta docs!")
+            logger.info("   Verifica que los archivos existan en: " + docs_path)
+            rag = None
+        else:
+            # Mostrar preview de cada archivo
+            for txt_file in txt_files:
+                filepath = os.path.join(docs_path, txt_file)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                logger.info(f"  {txt_file}: {len(content)} caracteres")
+                logger.info(f"      Preview: {content[:100]}...")
+            
+            logger.info("=" * 60)
+            
+            # Inicializar RAG
+            logger.info("Inicializando RAG System...")
+            rag = RAGSystem(docs_dir=docs_path)
+            
+            # Verificar indexacion
+            stats = rag.get_stats()
+            logger.info(f"RAG Stats:")
+            logger.info(f"   - Total chunks: {stats.get('total_chunks', 0)}")
+            logger.info(f"   - Por materia: {stats.get('subjects', {})}")
+            
+            if stats.get('total_chunks', 0) == 0:
+                logger.error("RAG inicializado pero SIN CHUNKS!")
+                rag = None
+            else:
+                logger.info("RAG inicializado correctamente")
+                
+                # HACER BÚSQUEDA DE PRUEBA
+                logger.info("PRUEBA DE BÚSQUEDA:")
+                test_query = "¿Que es la suma?"
+                context, sources, distance = rag.search_forced(test_query, n_results=3)
+                logger.info(f"   Query: {test_query}")
+                logger.info(f"   Contexto encontrado: {len(context)} chars")
+                logger.info(f"   Fuentes: {sources}")
+                logger.info(f"   Distancia: {distance:.3f}")
+                if context:
+                    logger.info(f"   Preview: {context[:200]}...")
+                else:
+                    logger.error("    NO SE ENCONTRo CONTEXTO!")
+                logger.info("=" * 60)
+    else:
+        logger.error(f"No existe la carpeta: {docs_path}")
+        logger.error(f"   Verifica que la carpeta 'docs' estÃ© en la rai­z del proyecto")
+        rag = None
+        
+except Exception as e:
+    logger.error(f"Error al iniciar RAG: {e}")
+    import traceback
+    logger.error(traceback.format_exc())
+    rag = None
+
+# ============ CONFIGURACIÃ“N DE VOCES ============
 EDGE_VOICES_ES = {
     'helena': 'es-ES-HelenaNeural',
     'alvaro': 'es-ES-AlvaroNeural',
@@ -104,156 +194,77 @@ EDGE_VOICES_ES = {
     'gonzalo': 'es-CO-GonzaloNeural',
 }
 
-# Cache para almacenar contenido scrapeado
+# ============ CACHE Y CONFIGURACIÃ“N ============
 SCRAPED_CACHE = {}
 CACHE_TIMEOUT = 3600  # 1 hora
 
-# Claves de materias y palabras clave
+# Palabras clave por materia
 SUBJECT_KEYWORDS = {
     'ciencias_naturales': [
-        'ciencias naturales', 'naturales', 'ciencia', 'biologia', 'manejo del agua',
-        'el agua', 'ciclo del agua', 'sol como fuente de energia', 'agua', 'sol', 'entorno'
+        'ciencias naturales', 'naturales', 'ciencia', 'biologia', 'agua',
+        'ciclo del agua', 'sol', 'energia', 'entorno', 'seres vivos'
     ],
     'ciencias_sociales': [
-        'ciencias sociales', 'identidad cultural', 'cultura', 'diversidad', 'el conflicto',
-        'organizaciones sociales', 'la familia', 'escuela', 'barrio', 'la convivencia',
-        'manual de convivencia', 'derechos y deberes', 'sociedad'
+        'ciencias sociales', 'sociales', 'cultura', 'familia', 'convivencia',
+        'derechos', 'deberes', 'sociedad', 'comunidad'
     ],
     'matematicas': [
-        'matemáticas', 'reciclaje', 'administracion de tienda', 'algebra', 'pensamiento numerico',
-        'pensamiento metrico', 'pensamiento geometrico', 'pensamiento aleatorio', 'estadistica', 'calculo'
+        'matematicas', 'matematicas', 'reciclaje', 'numeros', 'suma', 'resta',
+        'multiplicacion', 'division', 'geometria', 'algebra'
     ],
     'espanol': [
-        'español', 'los textos', 'la narracion', 'la anecdota', 'la receta', 'elaboracion de textos informativos',
-        'literatura', 'la fabula', 'el cuento y poemas', 'los mitos y leyendas', 'las coplas, retahila y cancion',
-        'el periodico', 'la noticia', 'el telefono', 'la carta', 'medios de comunicacion'
-        'comprensión lectora', 'comprension lectora', 'escritura', 'ortografía', 'ortografia'
+        'espaÃ±ol', 'espanol', 'literatura', 'cuento', 'fabula', 'texto',
+        'lectura', 'escritura', 'ortografi­a', 'gramatica'
     ],
     'ingles': [
-        'ingles', 'whats your name?', 'the alphabet', 'greetings', 'the colors', 'the family', 'the numbers',
-        'domestic and wild animals', 'the body', 'objects of my house', 'school supplies', 'geometric figures',
-        'fruits and vegetables'
+        'ingles', 'ingles', 'english', 'colors', 'numbers', 'family',
+        'alphabet', 'greetings'
     ]
 }
 
-# Tarjetas clave dentro de cada módulo
-CARD_KEYWORDS = {
-    'mi_curso': ['mi curso', 'mi aula', 'mi clase'],
-    'temas': ['temas', 'contenidos', 'contenido', 'unidades', 'lecciones'],
-    'anuncios': ['anuncios', 'novedades'],
-    'tareas': ['tareas', 'actividades', 'evaluaciones'],
-    'comunicate': ['comunicate', 'comunícate', 'contacto', 'foro'],
-    'aprueba': ['aprueba', 'aprobación', 'aprobacion'],
-    'puntuacion': ['puntuación', 'puntuacion', 'puntaje'],
-    'investiga': ['investiga', 'investigación', 'investigacion']
-}
-
-# Overrides manuales de tarjetas por materia (URLs conocidas/proporcionadas)
-SUBJECT_CARD_OVERRIDES = {
-    'ciencias_naturales': {
-        'mi_curso': 'https://testsed.narino.gov.co/Naturales/sistema/descripcion.php'   
-    },
-    'ciencias_sociales': {
-        'mi_curso': 'https://testsed.narino.gov.co/Sociales/sistema/descripcion.php'
-    },
-    'matematicas': {
-        'mi_curso': 'https://testsed.narino.gov.co/Matematicas/sistema/descripcion.php'
-    },
-    'espanol': {
-        'mi_curso': 'https://testsed.narino.gov.co/Espanol/sistema/descripcion.php'
-    },
-    'ingles': {
-        'mi_curso': 'https://testsed.narino.gov.co/Ingles/sistema/descripcion.php'
-    }
-}
-
-# Información estructurada actualizada basada en el HTML real
+# ============ INFORMACIÃ“N DE AVAS-2 ============
 AVAS2_REAL_INFO = {
     "titulo": "AVAS-2 - Ambientes Virtuales de Aprendizaje",
-    "plataforma": "Investic - Secretaría de Educación de Nariño",
-    "url_base": "https://investic.narino.gov.co/avas-2/",
+    "plataforma": "Investic - Secretari­a de Educacion de Nariño",
+    "url_base": AVAS2_URL,
     "asignaturas": {
         "ciencias_naturales": {
             "nombre": "Ciencias Naturales",
-            "url": "https://investic.narino.gov.co/avas-2/ava-ciencias-naturales/",
-            "descripcion": "Ambiente virtual para el aprendizaje de ciencias naturales",
-            "imagen": "ciencias-naturales.png",
-            "temas_posibles": ["Seres de mi entorno", "Seres vivos e inertes", "Adaptacion de los seres vivos", "ciclo de la vida", "Tipos de animales",
-                      "Necesidades de los seres vivos","Manejo del agua","Ciclo del agua","El sol como fuente de energia, luz y calor",
-                      "El sol en nuestro entorno","Guardianes del agua"]
+            "url": f"{AVAS2_URL}ava-ciencias-naturales/",
+            "temas": ["Manejo del agua","Seres de mi entorno", "Ciclo del agua", "El sol", "Ecosistemas",
+                      "Estados fisicos del agua","El sol como fuente de energia","Luz y calor"]
         },
         "ciencias_sociales": {
             "nombre": "Ciencias Sociales",
-            "url": "https://investic.narino.gov.co/avas-2/ava-ciencias-sociales/",
-            "descripcion": "Ambiente virtual para el aprendizaje de ciencias sociales",
-            "imagen": "ChatGPT-Image-22-ago-2025-10_35_16.png",
-            "temas_posibles": ["Identidad Cultural", "Cultura","Diversidad","Tipos de agresiones","El conflicto", "Organizaciones sociales", 
-                        "La familia, escuela, el barrio","La convivencia", "Manual de convivencia","Derechos y deberes","Sociedad"]
+            "url": f"{AVAS2_URL}ava-ciencias-sociales/",
+            "temas": ["Identidad cultural", "Diversidad", "Cultura", "Derechos","Conflicto","Organizaciones sociales",
+                      "Familia, escuela, barrio","Manuel de convivencia","Deberes"]
         },
         "matematicas": {
-            "nombre": "Matemáticas",
-            "url": "https://investic.narino.gov.co/avas-2/ava-matematicas/",
-            "descripcion": "Ambiente virtual para el aprendizaje de matemáticas",
-            "imagen": "ChatGPT-Image-22-ago-2025-10_41_12.png",
-            "temas_posibles": ["Aprende matematicas cuidando el ambiente", "Aprende matematicas administrando una tienda"]
+            "nombre": "Matematicas",
+            "url": f"{AVAS2_URL}ava-matematicas/",
+            "temas": ["NÃºmeros", "Operaciones", "GeometrÃ­a", "Medidas","Sumas","Restas","Multiplicaciones","Divisiones",]
         },
         "espanol": {
             "nombre": "Español",
-            "url": "https://investic.narino.gov.co/avas-2/ava-espanol/",
-            "descripcion": "Ambiente virtual para el aprendizaje de español",
-            "imagen": "ChatGPT-Image-22-ago-2025-10_59_35.png",
-            "temas_posibles": ["Los textos", "La narracion", "La anecdota", "La receta", "Elaboracion de textos informativos",
-                        "Literatura", "La fabula, el cuento y poemas", "Los mitos y leyendas", "Las coplas, retahila y cancion","El periodico",
-                        "La noticia","El telefono" , "La carta", "medios de comunicacion"]
+            "url": f"{AVAS2_URL}ava-espanol/",
+            "temas": ["Textos informativos","Narracion","Anecdota","Receta","Fabula", "Escritura", "Literatura", "GramÃ¡tica",
+                      "Cuento","Poema","Mitos y leyendas","Coplas","La cancion","El periodico","La noticia","El telefono", "La carta",
+                      "Television, radio e internet"]
         },
         "ingles": {
-            "nombre": "Inglés",
-            "url": "https://investic.narino.gov.co/avas-2/ava-ingles/",
-            "descripcion": "Ambiente virtual para el aprendizaje de inglés",
-            "imagen": "ChatGPT-Image-22-ago-2025-11_15_17.png",
-            "temas_posibles": ["Whats your name?", "The alphabet", "Greetings", "The colors", "The family", "The numbers", "Domestic and wild animals",
-                    "The body","Objects of my house","School supplies","Geometric figures","Fruits and vegetables"]
+            "nombre": "Ingles",
+            "url": f"{AVAS2_URL}ava-ingles/",
+            "temas": ["Vocabulary", "Grammar", "Conversation", "What's your name?","The alphabet","Greetings",
+                      "The colors","The family","The numbers","The body","Objects of my house","School supplies","Geoemtric figures",
+                      "Fruits and vegetables"] 
         }
-    },
-    "otros_recursos": {
-        "ovas": "https://investic.narino.gov.co/ovas-3/",
-        "agau": "https://agauregional2.talentum.edu.co/",
-        "mundo_3d": "https://si.aulasregionalfase2.com/menu",
-        "colcha_tesoros": "https://colchadetesoros.narino.gov.co/",
-        "aulas_steam": "https://steam.narino.gov.co/"
     }
 }
 
-# Crear loop de asyncio
+# ============ CONFIGURACIÃ“N ASYNCIO PARA TTS ============
 loop = None
 thread = None
-
-# Directorio de documentos locales (transcripciones, guías, etc.)
-# Permitir configurar por variable de entorno y detectar rutas comunes en Docker/local
-BASE_DIR = Path(__file__).resolve().parent
-_docs_dir_env = os.getenv('DOCS_DIR')
-if _docs_dir_env and os.path.isdir(_docs_dir_env):
-    DOCS_DIR = _docs_dir_env
-else:
-    _candidates = [
-        Path(__file__).resolve().parent.parent / 'docs',  # raíz del proyecto (ejecución local)
-        Path(__file__).resolve().parent / 'docs',          # /app/docs (Docker con volumen)
-        Path('/app/docs'),
-        Path('/docs'),
-    ]
-    _found = None
-    for p in _candidates:
-        try:
-            if p.is_dir():
-                _found = p
-                break
-        except Exception:
-            pass
-    DOCS_DIR = str(_found or (_candidates[0]))
-DOCS_CACHE = {
-    'timestamp': 0,
-    'docs': []  # lista de {path, text, subject}
-}
 
 def start_async_loop():
     global loop
@@ -269,100 +280,9 @@ def run_async(coro):
     future = asyncio.run_coroutine_threadsafe(coro, loop)
     return future.result()
 
-def scrape_avas2_real():
-    """Scraping real basado en la estructura HTML actual de AVAS-2"""
-    try:
-        logger.info("🌐 Scrapeando AVAS-2 con selectores específicos...")
-        
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.9',
-        }
-        
-        response = requests.get(AVAS2_URL, headers=headers, verify=False, timeout=20)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Extraer información real de la página
-        info = {
-            'titulo': 'AVAS-2 - Ambientes Virtuales de Aprendizaje',
-            'asignaturas': [],
-            'navegacion': [],
-            'descripcion': '',
-            'estructura_real': {}
-        }
-        
-        # Buscar el título real
-        title_elem = soup.find('title')
-        if title_elem:
-            info['titulo'] = title_elem.get_text().strip()
-        
-        # Extraer las asignaturas desde los módulos Divi (et_pb_blurb)
-        blurbs = soup.find_all('div', class_='et_pb_blurb')
-        for blurb in blurbs:
-            header = blurb.find('h4', class_='et_pb_module_header')
-            if header:
-                link = header.find('a')
-                if link:
-                    asignatura = {
-                        'nombre': link.get_text().strip(),
-                        'url': link.get('href', ''),
-                        'descripcion': ''
-                    }
-                    
-                    # Buscar descripción
-                    desc_div = blurb.find('div', class_='et_pb_blurb_description')
-                    if desc_div:
-                        desc_text = desc_div.get_text().strip()
-                        # Filtrar el texto placeholder
-                        if not desc_text.startswith("Your content goes here"):
-                            asignatura['descripcion'] = desc_text
-                    
-                    # Buscar imagen
-                    img = blurb.find('img')
-                    if img:
-                        asignatura['imagen'] = img.get('src', '')
-                        asignatura['imagen_alt'] = img.get('alt', '')
-                    
-                    info['asignaturas'].append(asignatura)
-        
-        # Extraer menú de navegación
-        nav_menu = soup.find('ul', class_='et-menu')
-        if nav_menu:
-            for item in nav_menu.find_all('a'):
-                nav_text = item.get_text().strip()
-                nav_href = item.get('href', '')
-                if nav_text and nav_href:
-                    info['navegacion'].append({
-                        'texto': nav_text,
-                        'url': nav_href
-                    })
-        
-        # Extraer breadcrumbs si existen
-        breadcrumbs = soup.find('div', class_='lwp-breadcrumbs')
-        if breadcrumbs:
-            info['breadcrumbs'] = breadcrumbs.get_text().strip()
-        
-        # Guardar en cache
-        SCRAPED_CACHE['avas2'] = {
-            'data': info,
-            'timestamp': time.time()
-        }
-        
-        logger.info(f"✅ Scraping exitoso. Asignaturas encontradas: {len(info['asignaturas'])}")
-        return info
-        
-    except Exception as e:
-        logger.error(f"❌ Error en scraping: {str(e)}")
-        # Devolver información estructurada como respaldo
-        return {
-            'error': str(e),
-            'fallback_data': AVAS2_REAL_INFO
-        }
-
+# ============ FUNCIONES AUXILIARES ============
 def normalize_text(text):
+    """Normalizar texto para busquedas"""
     if not text:
         return ''
     text = unicodedata.normalize('NFKD', text)
@@ -370,504 +290,225 @@ def normalize_text(text):
     text = re.sub(r"\s+", " ", text)
     return text.strip().lower()
 
-def fetch_soup(url: str, headers: Optional[dict] = None):
-    try:
-        default_headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-ES,es;q=0.9',
-        }
-        if headers:
-            default_headers.update(headers)
-        resp = requests.get(url, headers=default_headers, verify=False, timeout=20)
-        resp.raise_for_status()
-        return BeautifulSoup(resp.content, 'html.parser'), resp.url
-    except Exception as e:
-        logger.error(f"Error obteniendo URL {url}: {e}")
-        return None, url
-
-def extract_readable_text(soup: BeautifulSoup) -> str:
-    if soup is None:
-        return ''
-    # Preferir contenedores de contenido comunes (WordPress/Divi)
-    selectors = [
-        'article', '.entry-content', 'main', '.et_pb_section', '.et_pb_text', '.container', '#content'
-    ]
-    texts = []
-    nodes = []
-    for sel in selectors:
-        nodes = soup.select(sel)
-        if nodes:
-            break
-    if not nodes:
-        nodes = [soup.body or soup]
-    for node in nodes:
-        for el in node.find_all(['h1', 'h2', 'h3', 'h4', 'p', 'li']):
-            t = el.get_text(separator=' ', strip=True)
-            if t:
-                texts.append(t)
-    content = '\n'.join(texts)
-    # Reducir ruido
-    content = re.sub(r"\n{2,}", "\n", content)
-    return content.strip()
-
-def guess_subject_from_path(path_str: str) -> str:
-    p = normalize_text(path_str)
-    if 'social' in p:
-        return 'ciencias_sociales'
-    if 'natural' in p or 'ciencia' in p:
-        return 'ciencias_naturales'
-    if 'mate' in p:
-        return 'matematicas'
-    if 'espan' in p or 'españ' in p:
-        return 'espanol'
-    if 'ingl' in p:
-        return 'ingles'
-    return 'ciencias_naturales'
-
-def load_documents() -> list:
-    """Cargar documentos desde docs/ (pdf, txt, md) y cachearlos"""
-    docs: list[dict] = []
-    try:
-        os.makedirs(DOCS_DIR, exist_ok=True)
-        patterns = [
-            os.path.join(DOCS_DIR, '*.pdf'),
-            os.path.join(DOCS_DIR, '*.txt'),
-            os.path.join(DOCS_DIR, '*.md'),
-        ]
-        files = []
-        for pat in patterns:
-            files.extend(glob.glob(pat))
-        for path in files:
-            text = ''
-            if path.lower().endswith('.pdf'):
-                try:
-                    import pdfplumber
-                    with pdfplumber.open(path) as pdf:
-                        pages = [page.extract_text() or '' for page in pdf.pages]
-                        text = '\n'.join(pages)
-                except Exception as e:
-                    logger.warning(f"No se pudo leer PDF {path}: {e}")
-                    continue
-            else:
-                try:
-                    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                        text = f.read()
-                except Exception as e:
-                    logger.warning(f"No se pudo leer archivo {path}: {e}")
-                    continue
-            text = re.sub(r"\s+", " ", text).strip()
-            if not text:
-                continue
-            docs.append({
-                'path': path,
-                'text': text,
-                'subject': guess_subject_from_path(path)
-            })
-        DOCS_CACHE['docs'] = docs
-        DOCS_CACHE['timestamp'] = time.time()
-        logger.info(f"📚 Documentos cargados: {len(docs)}")
-    except Exception as e:
-        logger.error(f"Error cargando documentos: {e}")
-    return docs
-
-def ensure_docs_loaded():
-    if not DOCS_CACHE['docs'] or (time.time() - DOCS_CACHE['timestamp']) > CACHE_TIMEOUT:
-        load_documents()
-
-def extract_snippets(text: str, query: str, max_chars: int = 1200) -> str:
-    q_words = [w for w in normalize_text(query).split() if len(w) > 2]
-    # Dividir por puntos o saltos de línea para intentar mantener coherencia
-    parts = re.split(r"(?<=[\.!?])\s+|\n+", text)
-    selected = []
-    score = 0
-    for p in parts:
-        pn = normalize_text(p)
-        hits = sum(1 for w in q_words if w in pn)
-        if hits:
-            selected.append(p.strip())
-            score += hits
-        if len(' '.join(selected)) >= max_chars:
-            break
-    if not selected:
-        return text[:max_chars]
-    return ' '.join(selected)[:max_chars]
-
-def search_docs(query: str, subject: Optional[str] = None, limit: int = 2) -> list:
-    ensure_docs_loaded()
-    docs = DOCS_CACHE['docs']
-    if subject:
-        docs = [d for d in docs if d.get('subject') == subject]
-    scored = []
-    qn = normalize_text(query)
-    for d in docs:
-        tn = normalize_text(d['text'])
-        # Puntuación simple por presencia de palabras clave
-        hits = sum(1 for w in set(qn.split()) if len(w) > 3 and w in tn)
-        subj_bonus = 3 if subject and d.get('subject') == subject else 0
-        scored.append((hits + subj_bonus, d))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    results = []
-    for sc, d in scored[:limit]:
-        if sc <= 0:
-            continue
-        snippet = extract_snippets(d['text'], query)
-        results.append({
-            'path': d['path'],
-            'subject': d.get('subject'),
-            'snippet': snippet
-        })
-    return results
-
-def find_modules_on_main(main_url: str) -> dict:
-    soup, final_url = fetch_soup(main_url)
-    modules: dict[str, str] = {}
-    if soup is None:
-        return modules
-    # Buscar anclas que contengan los nombres de las asignaturas
-    subject_names = {
-        'ciencias_naturales': ['ciencias naturales'],
-        'ciencias_sociales': ['ciencias sociales'],
-        'matematicas': ['matemáticas', 'matematicas'],
-        'espanol': ['español', 'espanol'],
-        'ingles': ['inglés', 'ingles']
-    }
-    for a in soup.find_all('a'):
-        text = normalize_text(a.get_text())
-        href = a.get('href')
-        if not href:
-            continue
-        for key, name_list in subject_names.items():
-            if any(name in text for name in name_list) or (f"ava-{key.replace('_', '-')}") in normalize_text(href):
-                modules[key] = urljoin(final_url, href)
-    # Fallback a datos conocidos si algo falta
-    for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
-        if key not in modules and asig.get('url'):
-            modules[key] = asig['url']
-    return modules
-
-def find_cards_in_module(module_url: str) -> dict:
-    soup, final_url = fetch_soup(module_url)
-    cards: dict[str, str] = {}
-    if soup is None:
-        return cards
-    # Buscar tarjetas por texto del enlace
-    for a in soup.find_all('a'):
-        text = normalize_text(a.get_text())
-        href = a.get('href')
-        if not href:
-            continue
-        for card_key, variants in CARD_KEYWORDS.items():
-            if any(v in text for v in variants):
-                cards[card_key] = urljoin(final_url, href)
-    return cards
-
-def scrape_subject(subject_key: str) -> dict:
-    logger.info(f"🔎 Scrapeando materia: {subject_key}")
-    modules = find_modules_on_main(AVAS2_URL)
-    module_url = modules.get(subject_key)
-    if not module_url:
-        logger.warning(f"No se encontró URL del módulo para {subject_key}")
-        return {}
-    cards = find_cards_in_module(module_url)
-    # Aplicar overrides manuales
-    if subject_key in SUBJECT_CARD_OVERRIDES:
-        cards.update(SUBJECT_CARD_OVERRIDES[subject_key])
-    subject_data: dict = {
-        'subject': subject_key,
-        'module_url': module_url,
-        'cards': cards,
-        'content': {}
-    }
-    # Solo priorizar Mi curso y Temas
-    for key in ['mi_curso', 'temas']:
-        url = cards.get(key)
-        if url:
-            soup, _ = fetch_soup(url)
-            text = extract_readable_text(soup)
-            subject_data['content'][key] = {
-                'url': url,
-                'text': text[:100000]  # limitar tamaño
-            }
-    SCRAPED_CACHE[f'subject:{subject_key}'] = {
-        'data': subject_data,
-        'timestamp': time.time()
-    }
-    return subject_data
-
-def get_subject_data(subject_key: str) -> dict:
-    cached = SCRAPED_CACHE.get(f'subject:{subject_key}')
-    if cached and (time.time() - cached['timestamp']) < CACHE_TIMEOUT:
-        return cached['data']
-    return scrape_subject(subject_key)
-
-def get_avas2_info():
-    """Obtener información de AVAS-2 desde caché o scraping"""
-    cached = SCRAPED_CACHE.get('avas2')
-    if cached and (time.time() - cached['timestamp']) < CACHE_TIMEOUT:
-        logger.info("📦 Usando información AVAS-2 en cache")
-        return cached['data']
-    else:
-        logger.info("🔄 Realizando scraping de AVAS-2...")
-        return scrape_avas2_real()
-
-def crear_contexto_avas2(info_scraping, subject_data: Optional[dict] = None, docs_snippets: Optional[list] = None):
-    """Crear un contexto estructurado para el modelo"""
-    contexto = """
-GUÍA EDUCATIVA PARA EXPLICAR A NIÑOS
-====================================
-Habla con palabras sencillas y ejemplos cotidianos.
-Evita mencionar nombres de plataformas o marcas.
-
-ASIGNATURAS DISPONIBLES:
-"""
-    
-    # Si tenemos información del scraping, usarla
-    if info_scraping and 'asignaturas' in info_scraping and info_scraping['asignaturas']:
-        for asig in info_scraping['asignaturas']:
-            contexto += f"""
-- {asig.get('nombre', 'Sin nombre')}
-  URL: {asig.get('url', 'No disponible')}
-  Descripción: {asig.get('descripcion', 'Ambiente virtual de aprendizaje')}
-"""
-    else:
-        # Usar información de respaldo
-        for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
-            contexto += f"""
-- {asig['nombre']}
-  URL: {asig['url']}
-  Descripción: {asig['descripcion']}
-  Temas posibles: {', '.join(asig['temas_posibles'])}
-"""
-    
-    contexto += """
-
-RECUERDA CÓMO EXPLICAR:
-- Usa frases cortas y claras.
-- Da uno o dos ejemplos simples.
-- Puedes proponer una mini-actividad o juego.
-"""
-    # Inyectar información específica de la materia si está disponible
-    if subject_data and subject_data.get('content'):
-        contexto += """
-
-CONTENIDOS CLAVE DE ESTA MATERIA
-=================================
-"""
-        content = subject_data['content']
-        if 'mi_curso' in content:
-            contexto += f"""
-- Sección: Mi curso (resumen)
-{content['mi_curso'].get('text', '')[:2000]}
-"""
-        if 'temas' in content:
-            contexto += f"""
-- Sección: Temas (resumen)
-{content['temas'].get('text', '')[:2000]}
-"""
-
-    # Incluir fragmentos de documentos locales si existen
-    if docs_snippets:
-        contexto += """
-
-APUNTES Y TRANSCRIPCIONES
-=========================
-"""
-        for i, sn in enumerate(docs_snippets, start=1):
-            contexto += f"""
-- Fuente {i} (resumen):
-{sn.get('snippet', '')}
-"""
-
-    return contexto
-
+# ============ RUTAS PRINCIPALES ============
 @app.route("/")
 def index():
+    """PÃ¡gina principal"""
     return render_template("index.html")
 
 @app.route("/chat", methods=["POST", "OPTIONS"])
 def chat():
-    if not rag:
-        logger.warning("RAGSystem no está disponible. Usando modelo antiguo")
-        return jsonify({"error": "RAGSystem no está disponible"}), 500
-        
+    """Endpoint con respuestas amigables y empaticas"""
     if request.method == "OPTIONS":
         return '', 204
-
+    
     data = request.get_json()
     prompt = data.get("prompt", "")
-
+    
     if not prompt:
-        return jsonify({"error": "No prompt provided"}), 400
+        return jsonify({"error": "No se proporciona pregunta"}), 400
+    
+    cache_key = normalize_text(prompt)
+
+    if cache_key:
+        quick_reply = QUICK_REPLIES.get(cache_key)
+        if quick_reply:
+            result = {
+                "response": quick_reply,
+                "strategy": "quick_reply",
+                "sources": [],
+                "used_docs": False,
+                "model": OLLAMA_MODEL
+            }
+            cache_chat_response(cache_key, result)
+            return jsonify({**result, "cached": False})
+
+        cached = get_cached_chat_response(cache_key)
+        if cached:
+            logger.info("Cache hit: reusing cached reply")
+            cached_copy = dict(cached)
+            cached_copy["cached"] = True
+            return jsonify(cached_copy)
 
     try:
-        # 1. NUEVO: Buscar contexto relevante con RAG
-        logger.info("🔍 Buscando contexto con sistema RAG...")
-        context_rag, sources = rag.search(prompt, n_results=2)
-        logger.info(f"✅ RAG encontró contexto de: {sources}")
+        # 1. BUSCAR EN DOCUMENTOS LOCALES
+        context_rag = ""
+        sources = []
+        best_distance = 999
         
-        # 2. Detectar materia (se mantiene para metadata)
-        prompt_norm = normalize_text(prompt)
-        detected_subject = None
-        for subject_key, keywords in SUBJECT_KEYWORDS.items():
-            if any(k in prompt_norm for k in keywords):
-                detected_subject = subject_key
-                break
+        if rag:
+            logger.info(f"ðŸ” Buscando en documentos: {prompt[:50]}...")
+            context_rag, sources, best_distance = rag.search_forced(prompt, n_results=2)  # Solo 2 chunks
+            
+            if context_rag:
+                logger.info(f"Encontrado: {len(context_rag)} chars de {sources} (dist: {best_distance:.3f})")
+            else:
+                logger.info(f"Sin docs relevantes")
         
-        # 3. SIMPLIFICADO: Crear contexto solo con RAG (ya no necesitamos scraping ni search_docs)
-        contexto_final = f"""
-GUÍA EDUCATIVA PARA NIÑOS
-========================
-Eres "Profe Alex", explicas con palabras sencillas.
+        # 2. DECIDIR ESTRATEGIA Y CREAR PROMPT AMIGABLE
+        
+        if context_rag and len(context_rag) > 50 and best_distance < 0.9:
+            # ESTRATEGIA: Docs disponibles
+            strategy = "docs_friendly"
+            logger.info(f"Usando documentos (distancia: {best_distance:.3f})")
+            
+            # PROMPT MUY AMIGABLE PARA DOCS
+            contexto_final = f"""Eres el Profesor Axel, un maestro amable y paciente que explica las cosas de manera simple y clara.
 
-INFORMACIÓN RELEVANTE:
-{context_rag[:1500]}  # Limitamos a 1500 caracteres
+TU PERSONALIDAD:
+- Eres calido, motivador y siempre positivo
+- Explicas con ejemplos cotidianos que los niños entienden
+- Celebras el aprendizaje: "¡Excelente pregunta!", "¡Muy bien!"
+- Hablas de manera natural, como un amigo que enseña
+
+MATERIAL EDUCATIVO:
+{context_rag[:800]}
 
 INSTRUCCIONES:
-- Responde de forma breve y clara
-- Usa ejemplos simples
-- Máximo 3-4 oraciones
-"""
+1. Responde de manera SIMPLE y DIRECTA (maximo 3 oraciones cortas)
+2. Usa ejemplos de la vida diaria
+3. Sé motivador y positivo
+4. NO copies textual del material, explica con tus palabras
+5. Si puedes, da un ejemplo práctico
+
+PREGUNTA: {prompt}
+
+RESPUESTA AMIGABLE:"""
+            
+            temperature = 0.25
+            optimal_tokens = 120  # Respuestas mÃ¡s cortas
+
+        else:
+            # ESTRATEGIA: Solo modelo
+            strategy = "model_friendly"
+            logger.info(f"Usando conocimiento general")
+            
+            # PROMPT MUY AMIGABLE PARA MODELO
+            contexto_final = f"""Eres el Profesor Axel, un maestro amable y entusiasta que adora enseñar.
+
+TU ESTILO:
+- Explicas de forma simple, clara y divertida
+- Siempre eres positivo y motivador
+- Usas ejemplos que los niños conocen de su vida diaria
+- Eres paciente y comprensivo
+- Te emociona cuando los niños hacen preguntas
+
+REGLAS:
+1. Responde en MÁXIMO 3 oraciones simples
+2. Usa palabras sencillas que un niño entienda
+3. Da un ejemplo práctico si es posible
+4. Sé entusiasta pero no exagerado
+
+PREGUNTA: {prompt}
+
+TU RESPUESTA COMO PROFESOR AXEL:"""
+            
+            temperature = 0.35
+            optimal_tokens = 90  
         
-        # 4. Configurar para modelo rápido
-        php_api_url = os.getenv("PHP_API_URL", "http://localhost:8000/api.php")
-        
+        # 3. PREPARAR PAYLOAD
+        max_tokens = min(optimal_tokens, OLLAMA_MAX_TOKENS, 160)
+
         payload = {
             "prompt": prompt,
             "context": contexto_final,
-            "model": "phi3:mini",  # CAMBIO: Modelo más rápido
-            "temperature": 0.5,    # CAMBIO: Más determinístico
-            "max_tokens": 150      # CAMBIO: Respuestas más cortas
+            "model": OLLAMA_MODEL,
+            "temperature": temperature,
+            "max_tokens": max_tokens
         }
         
-        logger.info(f"📤 Enviando a PHP con contexto RAG de {len(contexto_final)} caracteres")
+        logger.info(f"Enviando a Ollama (estrategia: {strategy})...")
         
-        # 5. Petición a PHP (se mantiene igual)
+        # 4. LLAMAR A OLLAMA
+        php_response = requests.post(
+            PHP_API_URL,
+            json=payload,
+            timeout=OLLAMA_TIMEOUT,
+            headers={'Content-Type': 'application/json; charset=utf-8'}
+        )
+        
+        if php_response.status_code != 200:
+            logger.error(f"âŒ Error HTTP {php_response.status_code}")
+            return jsonify({"error": "Error en el servicio"}), 500
+        
         try:
-            php_response = requests.post(
-                php_api_url, 
-                json=payload, 
-                timeout=30,  # CAMBIO: Reducido de 120 a 30 segundos
-                headers={'Content-Type': 'application/json; charset=utf-8'}
-            )
-            
-            logger.info(f"PHP Response Status: {php_response.status_code}")
-            
-            if 'text/html' in php_response.headers.get('Content-Type', ''):
-                logger.error("❌ PHP devolvió HTML en lugar de JSON")
-                return jsonify({"error": "Error en el servicio PHP"}), 500
-            
-            try:
-                php_data = php_response.json()
-            except json.JSONDecodeError as e:
-                logger.error(f"❌ Error parseando JSON: {e}")
-                return jsonify({"error": "Error parseando respuesta"}), 500
-            
-        except requests.exceptions.Timeout:
-            logger.error("⏱️ Timeout al llamar a PHP API")
-            return jsonify({"error": "Timeout en el servicio"}), 504
-        except requests.exceptions.ConnectionError:
-            logger.error("❌ No se pudo conectar con PHP API")
-            return jsonify({"error": "No se pudo conectar con el servicio"}), 503
+            php_data = php_response.json()
+        except json.JSONDecodeError:
+            logger.error("Respuesta no es JSON valido")
+            return jsonify({"error": "Error en respuesta del servicio"}), 500
         
-        # 6. Verificar respuesta
         if not php_data.get('success'):
-            logger.error(f"❌ Error desde PHP: {php_data.get('error')}")
-            return jsonify({"error": php_data.get('error', 'Error desconocido')}), 500
+            error_msg = php_data.get('error', 'Error desconocido')
+            logger.error(f"Error desde PHP: {error_msg}")
+            return jsonify({"error": error_msg}), 500
         
         response_text = php_data.get('data', {}).get('response', '')
         
         if not response_text:
-            logger.error("❌ Respuesta vacía")
             return jsonify({"error": "No se recibió respuesta"}), 500
+
+        # 5. POST-PROCESAMIENTO PARA RESPUESTAS MÁS AMIGABLES
+        response_text = response_text.strip()
         
-        logger.info(f"✅ Respuesta recibida: {len(response_text)} caracteres")
+        # Limpiar frases muy formales o roboticas
+        formal_replacements = {
+            "En conclusión,": "",
+            "Por lo tanto,": "Entonces,",
+            "Es importante destacar que": "",
+            "Cabe mencionar que": "",
+            "Asimismo,": "Tambien,",
+            "No obstante,": "Pero,",
+        }
         
-        # 7. Respuesta con metadata actualizada
-        metadata = {
+        for formal, friendly in formal_replacements.items():
+            response_text = response_text.replace(formal, friendly)
+        
+        # Limitar a 4 oraciones mÃ¡ximo
+        sentences = [s.strip() for s in response_text.replace('!', '.').replace('?', '.').split('.') if s.strip()]
+        if len(sentences) > 4:
+            response_text = '. '.join(sentences[:4]) + '.'
+        
+        # Asegurar que termina con puntuaciÃ³n
+        if response_text and response_text[-1] not in ['.', '!', '?']:
+            response_text += '.'
+        
+        logger.info("=" * 60)
+        logger.info(f"RESPUESTA:")
+        logger.info(f"   Estrategia: {strategy}")
+        logger.info(f"   Longitud: {len(response_text)} chars")
+        logger.info(f"   Oraciones: {len(sentences)}")
+        logger.info(f"   Fuentes: {sources if sources else 'Conocimiento general'}")
+        logger.info("=" * 60)
+        
+        # 6. DEVOLVER RESPUESTA
+        base_payload = {
             "response": response_text,
-            "context_used": True,
-            "sources": sources,  # NUEVO: Fuentes del RAG
-            "subject": detected_subject,
-            "rag_used": True,    # NUEVO: Indicador de RAG
-            "model": "phi3:mini" # NUEVO: Modelo usado
+            "strategy": strategy,
+            "sources": sources if sources else [],
+            "used_docs": len(sources) > 0,
+            "model": OLLAMA_MODEL
         }
 
-        return jsonify(metadata)
-
+        cache_chat_response(cache_key, base_payload)
+        return jsonify({**base_payload, "cached": False})
+        
+    except requests.exceptions.Timeout:
+        logger.error("Timeout")
+        return jsonify({"error": "El servicio tardó demasiado"}), 504
+        
+    except requests.exceptions.ConnectionError:
+        logger.error("Error de conexión")
+        return jsonify({"error": "No se pudo conectar con el servicio"}), 503
+        
     except Exception as e:
-        logger.error(f"❌ Error en chat: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/scrape/refresh", methods=["POST"])
-def refresh_scrape():
-    """Forzar actualización del scraping"""
-    SCRAPED_CACHE.clear()
-    result = scrape_avas2_real()
-    success = 'error' not in result or (result.get('asignaturas') and len(result['asignaturas']) > 0)
+        return jsonify({"error": "Error procesando la pregunta"}), 500
     
-    return jsonify({
-        "success": success,
-        "message": "Información actualizada correctamente" if success else "Error al actualizar",
-        "asignaturas_encontradas": len(result.get('asignaturas', [])) if 'asignaturas' in result else 0
-    })
-
-@app.route("/scrape/subject/<subject>", methods=["POST"])
-def refresh_subject(subject):
-    """Forzar scraping de una materia específica (por ejemplo: ciencias_naturales)"""
-    data = scrape_subject(subject)
-    return jsonify({
-        "subject": subject,
-        "module_url": data.get('module_url'),
-        "cards": data.get('cards', {}),
-        "content_sections": list(data.get('content', {}).keys()),
-        "ok": bool(data)
-    })
-
-@app.route("/scrape/data", methods=["GET"])
-def get_scraped_data():
-    """Obtener datos scrapeados por materia para depuración"""
-    subject = request.args.get('subject', 'ciencias_naturales')
-    data = get_subject_data(subject)
-    # No devolver texto completo para no sobrecargar
-    preview = {}
-    if data and 'content' in data:
-        for k, v in data['content'].items():
-            preview[k] = {
-                'url': v.get('url'),
-                'text_preview': (v.get('text', '')[:500] + ('...' if len(v.get('text', '')) > 500 else ''))
-            }
-    return jsonify({
-        'subject': subject,
-        'module_url': data.get('module_url') if data else None,
-        'cards': data.get('cards', {}) if data else {},
-        'content_preview': preview
-    })
-
-@app.route("/scrape/status", methods=["GET"])
-def scrape_status():
-    """Obtener estado del scraping"""
-    cached = SCRAPED_CACHE.get('avas2')
-    if cached:
-        return jsonify({
-            "cached": True,
-            "age_seconds": time.time() - cached['timestamp'],
-            "source": AVAS2_URL,
-            "asignaturas": len(cached['data'].get('asignaturas', [])),
-            "last_update": time.strftime('%Y-%m-%d %H:%M:%S', 
-                                        time.localtime(cached['timestamp']))
-        })
-    else:
-        return jsonify({
-            "cached": False,
-            "source": AVAS2_URL
-        })
-
-# Mantener las funciones de TTS existentes
+# ============ TTS (Text-to-Speech) ============
 async def generate_speech_async(text, voice_name):
-    """Generar audio de forma asíncrona"""
+    """Generar audio con Edge TTS"""
     try:
         communicate = edge_tts.Communicate(text, voice_name)
         
@@ -892,77 +533,219 @@ async def generate_speech_async(text, voice_name):
 
 @app.route("/tts", methods=["POST"])
 def text_to_speech():
-    """Endpoint para generar audio con Edge TTS"""
+    """Endpoint para generar audio"""
     data = request.get_json()
     text = data.get("text", "")
-    voice = data.get("voice", "helena")
+    voice = data.get("voice", "gonzalo")
     
     if not text:
         return jsonify({"error": "No text provided"}), 400
     
     try:
-        voice_name = EDGE_VOICES_ES.get(voice, EDGE_VOICES_ES['helena'])
-        logger.info(f"Generando audio con voz: {voice_name}")
-        
+        voice_name = EDGE_VOICES_ES.get(voice, EDGE_VOICES_ES['gonzalo'])
         audio_base64 = run_async(generate_speech_async(text, voice_name))
         
         return jsonify({
             "audio": f"data:audio/mpeg;base64,{audio_base64}",
             "voice": voice_name
         })
-        
     except Exception as e:
         logger.error(f"Error en TTS: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/voices", methods=["GET"])
 def get_voices():
-    """Obtener lista de voces disponibles"""
+    """Obtener voces disponibles"""
     voices_list = []
     for key, voice_id in EDGE_VOICES_ES.items():
         parts = voice_id.split('-')
-        locale = f"{parts[0]}-{parts[1]}"
-        name = parts[2].replace('Neural', '')
-        
-        country_map = {
-            'es-ES': 'España',
-            'es-MX': 'México',
-            'es-AR': 'Argentina',
-            'es-CO': 'Colombia'
-        }
-        
         voices_list.append({
             "id": key,
-            "name": name,
+            "name": parts[2].replace('Neural', ''),
             "voice_id": voice_id,
-            "locale": locale,
-            "country": country_map.get(locale, locale)
+            "locale": f"{parts[0]}-{parts[1]}"
         })
     
-    return jsonify({
-        "voices": voices_list,
-        "enabled": True
-    })
+    return jsonify({"voices": voices_list, "enabled": True})
 
+
+
+
+@app.route("/rag/stats", methods=["GET"])
+def rag_stats():
+    """Obtener estadísticas del RAG"""
+    if not rag:
+        return jsonify({
+            "error": "RAG no disponible",
+            "status": "disabled"
+        }), 503
+    
+    try:
+        stats = rag.get_stats()
+        return jsonify({
+            "success": True,
+            "data": stats
+        })
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "error"
+        }), 500
+
+@app.route("/rag/search-test", methods=["POST"])
+def rag_search_test():
+    """Probar busqueda en RAG"""
+    if not rag:
+        return jsonify({"error": "RAG no disponible"}), 503
+    
+    data = request.get_json()
+    query = data.get("query", "")
+    
+    if not query:
+        return jsonify({"error": "Query vacío"}), 400
+    
+    try:
+        context, sources = rag.search(query, n_results=3)
+        return jsonify({
+            "query": query,
+            "context": context,
+            "sources": sources,
+            "context_length": len(context)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/rag/diagnostics", methods=["GET"])
+def rag_diagnostics():
+    """DiagnÃ³stico completo del RAG"""
+    if not rag:
+        return jsonify({
+            "status": "disabled",
+            "error": "RAG no inicializado"
+        }), 503
+    
+    try:
+        # Obtener estadÃ­sticas
+        stats = rag.get_stats()
+        
+        # Verificar archivos en disco
+        docs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs"))
+        files_on_disk = []
+        
+        if os.path.exists(docs_path):
+            for filename in os.listdir(docs_path):
+                if filename.endswith('.txt'):
+                    filepath = os.path.join(docs_path, filename)
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    files_on_disk.append({
+                        "filename": filename,
+                        "size": len(content),
+                        "lines": len(content.split('\n')),
+                        "preview": content[:200]
+                    })
+        
+        # Hacer bÃºsqueda de prueba
+        test_queries = [
+            "¿Que es la suma?",
+            "¿Cuales son los estados de la materia?",
+            "¿Que es la familia?",
+            "Hello, how are you?",
+            "¿Que es un sustantivo?"
+        ]
+        
+        test_results = []
+        for query in test_queries:
+            context, sources = rag.search(query, n_results=3)
+            test_results.append({
+                "query": query,
+                "found_context": len(context) > 0,
+                "context_length": len(context),
+                "sources": sources,
+                "preview": context[:150] if context else "No encontrado"
+            })
+        
+        return jsonify({
+            "status": "active",
+            "rag_stats": stats,
+            "docs_path": docs_path,
+            "files_on_disk": files_on_disk,
+            "test_searches": test_results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+@app.route("/rag/reindex", methods=["POST"])
+def rag_reindex():
+    """Forzar reindexacion manual"""
+    global rag
+    
+    try:
+        logger.info("Reindexacion manual solicitada...")
+        
+        # Eliminar Ã­ndice actual
+        if rag:
+            try:
+                rag.client.delete_collection("docs_educativos")
+                logger.info("Indice anterior eliminado")
+            except:
+                pass
+        
+        # Determinar ruta de docs
+        if IS_SERVER:
+            docs_path = "/app/docs"
+        else:
+            current_file = os.path.abspath(__file__)
+            app_dir = os.path.dirname(current_file)
+            project_root = os.path.dirname(app_dir)
+            docs_path = os.path.join(project_root, "docs")
+        
+        docs_path = os.path.abspath(docs_path)
+        
+        # Reinicializar RAG
+        from rag_system import RAGSystem
+        rag = RAGSystem(docs_dir=docs_path)
+        
+        stats = rag.get_stats()
+        
+        return jsonify({
+            "success": True,
+            "message": "Reindexacion completada",
+            "stats": stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en reindexacion: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# ============ INICIAR SERVIDOR ============
 if __name__ == "__main__":
     port = int(os.getenv('FLASK_PORT', 5000))
+    
     print("=" * 60)
-    print("🎓 Asistente AVAS-2 con Scraping Mejorado")
+    print("ASISTENTE EDUCATIVO AVAS-2")
     print("=" * 60)
-    print("✅ Sistema iniciado correctamente")
-    print("📚 Plataforma: AVAS-2 - Secretaría de Educación de Nariño")
-    print("🌐 URL Base: https://investic.narino.gov.co/avas-2/")
-    print("\n📖 Asignaturas disponibles:")
-    for key, asig in AVAS2_REAL_INFO['asignaturas'].items():
-        print(f"   - {asig['nombre']}")
-    print("\n🔧 Endpoints disponibles:")
-    print("   - GET  /         : Interfaz web")
-    print("   - POST /chat     : Chat con Llama3")
-    print("   - POST /tts      : Generar audio")
-    print("   - GET  /voices   : Lista de voces")
-    print("   - POST /scrape/refresh : Actualizar información")
-    print("   - GET  /scrape/status  : Estado del scraping")
-    print("\n🌐 Abre en tu navegador: http://localhost:5000")
+    print(f"Sistema iniciado")
+    print(f"Accede en: {PUBLIC_URL if IS_SERVER else f'http://localhost:{port}'}")
+    print(f"RAG: {'Activo' if rag else 'No disponible'}")
+    print(f"Modelo: {OLLAMA_MODEL}")
     print("=" * 60)
     
-    app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
+    app.run(
+        debug=False,
+        host='0.0.0.0',
+        port=port,
+        threaded=True
+    )

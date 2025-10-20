@@ -1,0 +1,174 @@
+# INGLÉS PARA NIÑOS - VOCABULARIO Y FRASES
+
+## SALUDOS Y PRESENTACIONES
+Hello = Hola
+Good morning = Buenos días  
+Good afternoon = Buenas tardes
+Good night = Buenas noches
+How are you? = ¿Cómo estás?
+I'm fine, thank you = Estoy bien, gracias
+What's your name? = ¿Cómo te llamas?
+My name is Anna = Me llamo Anna
+Nice to meet you = Encantado de conocerte
+
+## COLORES
+Red = Rojo
+Blue = Azul
+Yellow = Amarillo
+Green = Verde
+Orange = Naranja
+Purple = Morado
+Pink = Rosado
+Black = Negro
+White = Blanco
+Brown = Café
+Gray = Gris
+
+## NÚMEROS (1-15)
+One = Uno
+Two = Dos
+Three = Tres
+Four = Cuatro
+Five = Cinco
+Six = Seis
+Seven = Siete
+Eight = Ocho
+Nine = Nueve
+Ten = Diez
+Eleven = Once
+Twelve = Doce
+Thirteen = Trece
+Fourteen = Catorce
+Fifteen = Quince
+
+## FAMILIA
+Father = Papá
+Mother = Mamá
+Brother = Hermano
+Sister = Hermana
+Grandfather = Abuelo
+Grandmother = Abuela
+Uncle = Tío
+Aunt = Tía
+Cousin = Primo/Prima
+Baby = Bebé
+
+## ANIMALES
+Dog = Perro
+Cat = Gato
+Bird = Pájaro
+Fish = Pez
+Horse = Caballo
+Cow = Vaca
+Pig = Cerdo
+Chicken = Pollo/Gallina
+Rabbit = Conejo
+Elephant = Elefante
+Lion = León
+Monkey = Mono
+Frog = Rana
+
+## FORMAS GEOMÉTRICAS
+Circle = Círculo
+Square = Cuadrado
+Triangle = Triángulo
+Rectangle = Rectángulo
+Star = Estrella
+Heart = Corazón
+Oval = Óvalo
+Diamond = Rombo
+
+## DÍAS DE LA SEMANA
+Monday = Lunes
+Tuesday = Martes
+Wednesday = Miércoles
+Thursday = Jueves
+Friday = Viernes
+Saturday = Sábado
+Sunday = Domingo
+
+## MESES Y ESTACIONES
+January = Enero
+February = Febrero
+March = Marzo
+April = Abril
+May = Mayo
+June = Junio
+July = Julio
+August = Agosto
+September = Septiembre
+October = Octubre
+November = Noviembre
+December = Diciembre
+
+Spring = Primavera
+Summer = Verano
+Autumn/Fall = Otoño
+Winter = Invierno
+
+## PARTES DEL CUERPO
+Head = Cabeza
+Hair = Cabello
+Eyes = Ojos
+Ears = Orejas
+Nose = Nariz
+Mouth = Boca
+Hands = Manos
+Arms = Brazos
+Legs = Piernas
+Feet = Pies
+
+## OBJETOS ESCOLARES
+Book = Libro
+Notebook = Cuaderno
+Pencil = Lápiz
+Pen = Bolígrafo
+Eraser = Borrador
+Ruler = Regla
+Desk = Escritorio
+Chair = Silla
+Backpack = Mochila
+Board = Pizarra
+
+## COMIDA Y BEBIDAS
+Apple = Manzana
+Banana = Banano
+Bread = Pan
+Cheese = Queso
+Milk = Leche
+Water = Agua
+Juice = Jugo
+Rice = Arroz
+Egg = Huevo
+Soup = Sopa
+
+## EMOCIONES
+Happy = Feliz
+Sad = Triste
+Angry = Enojado
+Tired = Cansado
+Scared = Asustado
+Excited = Emocionado
+Hungry = Hambriento
+Thirsty = Sediento
+Sleepy = Soñoliento
+
+## EJEMPLOS DE FRASES
+The apple is red = La manzana es roja
+The sky is blue = El cielo es azul
+I have two eyes = Tengo dos ojos
+The dog barks = El perro ladra
+The cat sleeps = El gato duerme
+Today is Monday = Hoy es lunes
+My birthday is in May = Mi cumpleaños es en mayo
+I like apples = Me gustan las manzanas
+I drink milk = Yo tomo leche
+I'm happy = Estoy feliz
+
+## DIÁLOGOS BÁSICOS
+Teacher: Hello, how are you? | Student: I'm fine, thank you
+Teacher: What's your name? | Student: My name is Laura
+Teacher: Who is he? | Student: He is my father
+Teacher: Who is she? | Student: She is my mother
+Teacher: What day is today? | Student: Today is Monday
+Teacher: How do you feel today? | Student: I'm happy!

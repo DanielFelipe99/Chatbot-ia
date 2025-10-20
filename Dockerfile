@@ -1,53 +1,57 @@
-# Dockerfile
-FROM python:3.9-slim
+FROM python:3.10-slim
 
-# Instalar PHP y dependencias 
+# Instalar TODAS las dependencias del sistema necesarias
 RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    php \
-    php-curl \
-    php-mbstring \
-    php-xml \
-    php-zip \
+    # Básicas
+    curl wget \
+    # PHP
+    php-cli php-curl php-mbstring php-xml php-zip \
     composer \
-    tesseract-ocr \
-    tesseract-ocr-spa \
+    # Python build tools 
+    build-essential \
+    python3-dev \
+    gcc \
+    g++ \
+    # Otras herramientas
+    tesseract-ocr tesseract-ocr-spa \
     poppler-utils \
-    supervisor \
+    netcat-openbsd \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Ollama
-RUN curl -fsSL https://ollama.ai/install.sh | sh
-
-# Crear directorio de la aplicación
 WORKDIR /app
 
-# Copiar archivos de composer primero
-COPY composer.json composer.lock* ./
-RUN composer install --no-dev --optimize-autoloader || true
-
-# Copiar requirements de Python
+# Copiar requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar toda la aplicación
+# Actualizar pip primero
+RUN pip install --upgrade pip setuptools wheel
+
+# Instalar dependencias en orden (para mejor debugging)
+RUN pip install --no-cache-dir flask flask-cors requests
+RUN pip install --no-cache-dir beautifulsoup4 edge-tts urllib3
+RUN pip install --no-cache-dir sentence-transformers
+RUN pip install --no-cache-dir chromadb
+
+# Instalar el resto si hay más
+RUN pip install --no-cache-dir -r requirements.txt || true
+
+# Copiar composer files
+COPY composer.json composer.lock* ./
+RUN if [ -f composer.json ]; then composer install --no-dev --optimize-autoloader; fi
+
+# Copiar aplicación
 COPY . .
 
-# Crear directorio para logs
-RUN mkdir -p /var/log/chatbot
+# Crear directorios
+RUN mkdir -p /app/docs /app/chroma_db /var/log/chatbot
 
-# Copiar configuración de supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+#CMD sh -c 'php -S 0.0.0.0:8000 api.php & cd app && python app.py'
 
-# Exponer solo el puerto de Flask
-EXPOSE 5000
+EXPOSE 5000 8000
 
-# Variables de entorno
-ENV FLASK_ENV=production
-ENV OLLAMA_HOST=0.0.0.0
-ENV PHP_API_URL=http://localhost:8080/api.php
-ENV OLLAMA_URL=http://localhost:11434
+# Copiar entrypoint y darle permisos ejecutables
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Usar supervisor para manejar múltiples procesos
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ENTRYPOINT ["/entrypoint.sh"]

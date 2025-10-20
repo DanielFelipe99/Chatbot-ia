@@ -1,0 +1,27 @@
+{
+  "espa\u00f1ol.txt": {
+    "hash": "d327c128e0ae3142e0cd9f1a0f0c2349",
+    "modified": 1760418455.2636986,
+    "size": 2711
+  },
+  "ingles.txt": {
+    "hash": "502681b77e81b912c9f791a397d2a254",
+    "modified": 1760418455.267209,
+    "size": 3299
+  },
+  "matematicas.txt": {
+    "hash": "092113421ea54627ea97ed7a58bae922",
+    "modified": 1760929757.4525168,
+    "size": 12056
+  },
+  "naturales.txt": {
+    "hash": "804ff2f692fe786d21221c148dfc2888",
+    "modified": 1760418455.252699,
+    "size": 3594
+  },
+  "sociales.txt": {
+    "hash": "7a8e437e77d7bc8edde032ef25304a1f",
+    "modified": 1760115914.6038368,
+    "size": 7900
+  }
+}

@@ -1,1 +1,251 @@
-Muchas personas saben que es el reciclaje pero no lo practican. El reciclaje permite reutilizar materiales como carton, papel, vidrio, plástico, y orgánicos reduciendo la contaminación. En las plantas el reciclaje se transforma residuos nuevos en productos como abono, papel, botellas, herramientas y juguetes. Las comunidades indígenas valoran el cuidado de la naturaleza y prefieren lo natural frente a lo artificial. Las matemáticas ayudan a clasificar, contar, comparar y organizar residuos mediante conjuntos. 
+LONGITUD
+Pregunta: ¿Qué es la longitud?
+Respuesta: La longitud es la medida de la distancia entre dos puntos en una línea recta.
+Ejemplo: La distancia entre dos postes es 7 metros (7 m).
+
+Pregunta: ¿Cuáles son algunas unidades de longitud comunes?
+Respuesta: Milímetros (mm), centímetros (cm), metros (m) y kilómetros (km).
+Ejemplo: 100 cm = 1 m. 1 km = 1000 m.
+
+Pregunta: ¿Cómo convertir centímetros a metros?
+Respuesta: Se divide entre 100 (porque 100 cm = 1 m).
+Ejemplo: 250 cm = 250 ÷ 100 = 2,50 m (2 m 50 cm).
+
+
+PERÍMETRO
+Pregunta: ¿Qué es el perímetro?
+Respuesta: El perímetro es la distancia total alrededor de una figura geométrica (la suma de todos sus lados).
+Ejemplo: Perímetro de un rectángulo de 5 cm por 3 cm: P = 2·(5 + 3) = 16 cm.
+
+Pregunta: ¿Cómo se calcula el perímetro de un cuadrado?
+Respuesta: Se multiplica el lado por 4 (P = 4 · lado).
+Ejemplo: Lado = 4 cm → P = 4 · 4 = 16 cm.
+
+
+SUPERFICIE (ÁREA)
+Pregunta: ¿Qué es la superficie o área?
+Respuesta: El área es la medida de la región que ocupa una figura plana, en unidades cuadradas (cm², m²).
+Ejemplo: Área de un rectángulo = largo · ancho. Si largo = 5 m y ancho = 3 m, área = 15 m².
+
+Pregunta: ¿Cómo se calcula el área de un triángulo?
+Respuesta: Área del triángulo = (base · altura) ÷ 2.
+Ejemplo: base = 6 m, altura = 4 m → Área = (6 · 4) ÷ 2 = 12 m².
+
+
+VOLUMEN
+Pregunta: ¿Qué es el volumen?
+Respuesta: El volumen mide el espacio ocupado por un cuerpo tridimensional, en unidades cúbicas (cm³, m³).
+Ejemplo: Volumen de un paralelepípedo (caja) = largo · ancho · alto.
+
+Pregunta: Ejemplo de volumen de un cubo y un prisma rectangular.
+Respuesta/Ejemplo: Cubo con lado 3 cm → V = 3·3·3 = 27 cm³. Caja 4 cm × 3 cm × 2 cm → V = 4·3·2 = 24 cm³.
+
+
+MASA Y MEDIDAS DE MASA
+Pregunta: ¿Qué es la masa?
+Respuesta: La masa es la cantidad de materia que tiene un objeto. Se mide en gramos (g) y kilogramos (kg).
+Ejemplo: 1000 g = 1 kg. Una bolsa de harina de 2,5 kg tiene 2500 g.
+
+ESCRITURA Y CONTEO DE NÚMEROS (HASTA 20 Y MÁS)
+Pregunta: ¿Cómo se escriben y cuentan los números del 0 al 20?
+Respuesta/Ejemplo: 0 cero, 1 uno, 2 dos, 3 tres, 4 cuatro, 5 cinco, 6 seis, 7 siete, 8 ocho, 9 nueve, 10 diez, 11 once, 12 doce, 13 trece, 14 catorce, 15 quince, 16 dieciséis, 17 diecisiete, 18 dieciocho, 19 diecinueve, 20 veinte.
+
+Pregunta: ¿Qué es el conteo de elementos?
+Respuesta: Contar elementos significa enumerar objetos uno a uno para obtener la cantidad total.
+Ejemplo: Si hay 7 manzanas en una cesta, el conteo de elementos = 7.
+
+
+CONJUNTOS Y PERTENENCIA
+Pregunta: ¿Qué es un conjunto?
+Respuesta: Un conjunto es una colección de objetos que comparten una característica en común.
+Ejemplo: A = {manzana, pera, plátano}
+
+Pregunta: ¿Qué significa pertenencia?
+Respuesta: Significa que un elemento pertenece a un conjunto. Se escribe con el símbolo ∈.
+Ejemplo: "manzana ∈ A" indica que la manzana pertenece al conjunto A.
+
+
+INTERPRETACIÓN DE DATOS Y GRÁFICOS DE BARRAS
+Pregunta: ¿Qué es la interpretación de datos?
+Respuesta: Es leer y comprender información presentada en tablas, listas o gráficos para extraer conclusiones.
+Ejemplo: Un gráfico de barras muestra cuántos alumnos prefieren cada fruta; la barra más alta indica la fruta preferida por más alumnos.
+
+
+ADICIÓN (SUMA)
+Pregunta: ¿Qué es la adición?
+Respuesta: La adición es la operación que reúne dos o más cantidades para obtener una suma total.
+Ejemplo simple (1 dígito): 5 + 3 = 8.
+
+Pregunta: ¿Cómo sumar números de dos cifras (con llevadas)?
+Respuesta: Se suman las unidades; si el resultado es ≥ 10 se "lleva" la decena al siguiente lugar y se suman las decenas.
+Ejemplo: 57 + 68
+  Unidades: 7 + 8 = 15 → escribo 5 y llevo 1
+  Decenas: 5 + 6 + 1(llevada) = 12 → escribo 12
+  Resultado: 125
+
+Pregunta: ¿Cómo sumar números de tres cifras?
+Respuesta/Ejemplo: 486 + 279
+  Unidades: 6 + 9 = 15 → escribo 5, llevo 1
+  Decenas: 8 + 7 + 1 = 16 → escribo 6, llevo 1
+  Centenas: 4 + 2 + 1 = 7
+  Resultado: 765
+
+Pregunta: ¿Qué es la adición con números hasta el 19?
+Respuesta: Es sumar números pequeños (menos de 20) usando descomposición o hechos básicos de suma.
+Ejemplo: 9 + 8 = 17 (usa hechos: 9+1=10 → 10+7=17)
+
+Pregunta: Propiedades de la adición (breve)
+Respuesta: Conmutativa (a+b = b+a), asociativa ((a+b)+c = a+(b+c)), elemento neutro (a+0 = a).
+
+
+SUSTRACCIÓN (RESTA)
+Pregunta: ¿Qué es la sustracción?
+Respuesta: La sustracción resta una cantidad (sustraendo) de otra (minuendo) para obtener la diferencia.
+Ejemplo simple (1 dígito): 9 - 4 = 5.
+
+Pregunta: ¿Cómo restar números de dos cifras (con llevadas / pedir prestado)?
+Respuesta: Si no alcanzan las unidades, se pide prestado de la decena.
+Ejemplo: 52 - 27
+  Unidades: 2 - 7 → no se puede, pido 1 decena de 5 (queda 4), unidades: 12 - 7 = 5
+  Decenas: 4 - 2 = 2
+  Resultado: 25
+
+Pregunta: ¿Cómo restar números de tres cifras?
+Respuesta/Ejemplo: 403 - 179
+  Unidades: 3 - 9 → pedir prestado (de 0 no se puede, pedir de la centena, etc.).
+  Proceso: 403 → 3 + 10 (pedido) pero la decena era 0, pide a la centena:
+    4 centenas → 3 centenas y la decena se convierte en 9 (porque 0+10 y se pide 1) y las unidades se vuelven 13.
+    Unidades: 13 - 9 = 4
+    Decenas: 9 - 7 = 2
+    Centenas: 3 - 1 = 2
+  Resultado: 224
+
+Pregunta: ¿Qué es la sustracción con números hasta el 19?
+Respuesta: Restar números pequeños usando hechos básicos o contando hacia atrás.
+Ejemplo: 17 - 9 = 8 (17-7=10, 10-2=8) o directamente 17-9=8.
+
+MULTIPLICACIÓN
+Pregunta: ¿Qué es la multiplicación?
+Respuesta: La multiplicación es una suma repetida: a × b significa sumar a, b veces.
+Ejemplo simple: 6 × 7 = 42 (6 sumado 7 veces = 42).
+
+Pregunta: ¿Cuáles son los términos de la multiplicación?
+Respuesta: Factores (los números que se multiplican) y producto (el resultado).
+Ejemplo: En 4 × 5 = 20, 4 y 5 son factores y 20 es el producto.
+
+Pregunta: Propiedades importantes de la multiplicación
+Respuesta: Conmutativa (a·b = b·a), asociativa ((a·b)·c = a·(b·c)), elemento neutro (a·1 = a), propiedad distributiva (a·(b+c) = a·b + a·c).
+
+Pregunta: Multiplicación por una cifra y por dos cifras (ejemplos)
+Ejemplo multiplicación por una cifra: 23 × 4 = 92 (23+23+23+23 = 92)
+Ejemplo multiplicación por dos cifras (algoritmo): 15 × 12
+  15 × 2 = 30
+  15 × 1 (decena) = 15 → 150
+  Sumar: 30 + 150 = 180
+  Resultado: 180
+
+
+TÉRMINOS DE LA MULTIPLICACIÓN
+Pregunta: ¿Qué significa "producto", "factor" y "tabla de multiplicar"?
+Respuesta: El producto es el resultado; factores son los números multiplicados; la tabla de multiplicar muestra productos básicos para memorizarlos (ej.: tabla del 1 al 10).
+
+
+DIVISIÓN
+Pregunta: ¿Qué es la división?
+Respuesta: La división reparte una cantidad en partes iguales. Se expresa como: dividendo ÷ divisor = cociente (con posible resto).
+Ejemplo simple: 12 ÷ 3 = 4.
+
+Pregunta: ¿Cuáles son los términos de la división?
+Respuesta: Dividendo (número que se divide), divisor (número que divide), cociente (resultado) y resto (lo que sobra si no es exacta).
+Ejemplo: 13 ÷ 4 = 3 con resto 1 (porque 4·3 = 12, 13-12 = 1).
+
+Pregunta: División por un dígito (ejemplos)
+Ejemplo: 84 ÷ 7 = 12
+Ejemplo con resto: 14 ÷ 3 = 4 resto 2 (porque 3·4 = 12, 14-12 = 2).
+
+Pregunta: División por dos dígitos (ejemplos y procedimiento)
+Ejemplo exacta: 144 ÷ 12 = 12.
+Ejemplo con resto: 155 ÷ 12 = 12 resto 11 (porque 12·12 = 144, 155-144 = 11).
+
+Pregunta: División con pasos (método de la división larga, resumen)
+Respuesta: Se divide el primer grupo de cifras por el divisor, se escribe el cociente parcial, se multiplica, se resta, se baja la siguiente cifra y se repite hasta obtener el cociente final y el posible resto.
+
+
+DIVISIÓN EN CONTEXTOS (repartir, agrupar)
+Pregunta: ¿Qué significa dividir en problemas reales?
+Respuesta: Repartir objetos en grupos iguales o formar grupos con cierta cantidad cada uno.
+Ejemplo: Si hay 20 caramelos y 4 niños, cada niño recibe 20 ÷ 4 = 5 caramelos.
+
+
+PROPIEDADES Y ESTRATEGIAS (OPERACIONES)
+Pregunta: ¿Qué estrategias ayudan en las operaciones básicas?
+Respuesta: Descomponer números, usar la tabla de multiplicar, sumar o restar por pasos, aproximar, usar propiedades (distributiva) para facilitar cálculos.
+Ejemplo: Para calcular 9 × 17 → 9×(10+7) = 90 + 63 = 153.
+
+
+PROBLEMAS DE APLICACIÓN (Ejemplos prácticos)
+Pregunta: Resuelve: María tiene 37 manzanas y compra 28 más. ¿Cuántas tiene ahora?
+Respuesta/Ejemplo: 37 + 28 = 65 manzanas.
+
+Pregunta: Resuelve: En una cancha hay 6 filas con 12 sillas en cada fila. ¿Cuántas sillas hay en total?
+Respuesta/Ejemplo: 6 × 12 = 72 sillas.
+
+Pregunta: Resuelve: Un recipiente tiene 2 litros (2000 ml). Si usamos 350 ml, ¿cuánto queda?
+Respuesta/Ejemplo: 2000 ml - 350 ml = 1650 ml.
+
+
+CONVERSIÓN DE UNIDADES (Rápido resumen)
+Pregunta: ¿Cómo convertir metros y centímetros?
+Respuesta: 1 m = 100 cm. Para pasar de cm a m dividir entre 100; para pasar de m a cm multiplicar por 100.
+Ejemplo: 3,4 m = 340 cm. 250 cm = 2,50 m.
+
+Pregunta: ¿Cómo convertir gramos y kilogramos?
+Respuesta: 1000 g = 1 kg. Ejemplo: 2,5 kg = 2500 g.
+
+
+POSICIÓN ESPACIAL (Breve)
+Pregunta: ¿Qué es la posición espacial?
+Respuesta: Es la ubicación relativa de un objeto en relación con otro (arriba, abajo, izquierda, derecha, delante, detrás).
+Ejemplo: El libro está encima de la mesa (arriba), la silla está a la derecha de la mesa.
+
+
+NOTAS FINALES
+- Este archivo contiene preguntas, respuestas y ejemplos prácticos para los temas matemáticos más comunes en primaria.  
+- Si deseas, puedo añadir más ejercicios resueltos paso a paso o transformar este contenido en un formato JSON, CSV o en tarjetas de pregunta-respuesta para entrenamiento automático.  
+
+MONEDAS MONEDAS
+En Colombia circulan actualmente cinco monedas de diferentes denominaciones: 50, 100, 200, 500 y 1,000 pesos. Cada una tiene un tamaño, color y diseño distinto que permite diferenciarlas fácilmente.
+
+La moneda de 50 pesos es plateada y pequeña. En una de sus caras aparece el número 50 y en la otra, el escudo de Colombia.
+
+La moneda de 100 pesos también es plateada, un poco más grande que la de 50. Tiene el número 100 y el escudo nacional.
+
+La moneda de 200 pesos es bimetálica, con un anillo plateado y el centro dorado.
+
+La moneda de 500 pesos también es bimetálica, pero su anillo es dorado y el centro plateado.
+
+La moneda de 1,000 pesos es dorada y es la de mayor valor entre las monedas colombianas.
+
+Estas monedas representan valores que usamos todos los días para comprar productos, pagar servicios o ahorrar. Con ellas también podemos aprender matemáticas de una forma práctica y divertida.
+
+Por ejemplo:
+
+Si tienes una moneda de 200 pesos y otra de 500 pesos, juntas suman 700 pesos.
+
+Si compras algo que cuesta 300 pesos y pagas con 500 pesos, te deben devolver 200 pesos.
+
+Si tienes tres monedas de 100 pesos, tienes 300 pesos en total.
+
+CAPACIDAD
+Estas operaciones sencillas de suma y resta ayudan a comprender el valor del dinero y a mejorar el razonamiento matemático. También fortalecen habilidades como el conteo, la comparación de cantidades y la resolución de problemas cotidianos.
+
+Conocer las monedas de nuestro país nos enseña a valorar el dinero, a usarlo correctamente y a aplicar los conocimientos matemáticos en situaciones reales.
+
+Capacidad. Capacidad es la cantidad que un recipiente puede contener. En nuestra tienda tenemos estos recipientes con los cuales podemos medir la capacidad que tienen.
+ Una cantina. Un botellón.  Un balde.
+Una botella. Una caja de jugo.  Un vaso.
+ Miremos estos ejemplos.  Una cantina se llena con cuatro valdes de agua. Un botellón contiene dos valdes de agua.
+ Un balde se llena con tres botellas de agua.  Una caja de jugo contiene igual cantidad que un vaso.  La botella de agua se llena con tres vasos de agua.
+
+DIVIDIR ENTRE 0
+No se puede dividir entre el numero 0, es una indeterminacion. 
